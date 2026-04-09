@@ -1,0 +1,18 @@
+export const ROUTES = {
+  AUTH_LOGIN: "/modules/auth/pages/login/index",
+  AUTH_REGISTER: "/modules/auth/pages/register/index",
+  AUTH_RESIDENT: "/modules/auth/pages/resident/index",
+  AUTH_RESIDENT_TICKET: "/modules/auth/pages/resident-ticket/index",
+  STYLE_PICKER: "/modules/auth/pages/style/index",
+  CHAT_HOME: "/modules/chat/pages/home/index",
+  CHAT_CABIN: "/modules/chat/pages/cabin/index",
+  CHAT_VOICE: "/modules/chat/pages/voice/index",
+  CHAT_GENERATING: "/modules/chat/pages/generating/index",
+  TICKET_LIST: "/modules/ticket/pages/list/index",
+  TICKET_DETAIL: "/modules/ticket/pages/detail/index",
+  TICKET_VIEWER: "/modules/ticket/pages/viewer/index",
+  SQUARE_MAP: "/modules/square/pages/map/index",
+  SQUARE_ISLAND: "/modules/square/pages/island/index",
+  SQUARE_PUBLISH: "/modules/square/pages/publish/index",
+  AID: "/modules/user/pages/aid/index",
+} as const;

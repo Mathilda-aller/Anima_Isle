@@ -1,0 +1,15 @@
+# 忽略本地虚拟环境
+.venv/
+venv/
+
+# 忽略 IDE 配置
+.vscode/
+.idea/
+
+# 忽略缓存
+.pytest_cache/
+__pycache__/
+*.pyc
+
+# 忽略本地环境变量
+.env

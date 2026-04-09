@@ -1,0 +1,20 @@
+<svg width="192" height="192" viewBox="0 0 192 192" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="96" cy="96" r="95.5" stroke="url(#inner_stroke)" stroke-opacity="0.58"/>
+  <circle cx="96" cy="96" r="68" fill="url(#inner_fill)"/>
+  <circle cx="96" cy="96" r="35" fill="url(#core_fill)"/>
+  <defs>
+    <linearGradient id="inner_stroke" x1="96" y1="0" x2="96" y2="192" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#E9F2FF" stop-opacity="0.12"/>
+      <stop offset="0.48" stop-color="#D8E7FF" stop-opacity="0.48"/>
+      <stop offset="1" stop-color="#E7F1FF" stop-opacity="0.1"/>
+    </linearGradient>
+    <radialGradient id="inner_fill" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(96 96) rotate(90) scale(68)">
+      <stop stop-color="#EEF5FF" stop-opacity="0.2"/>
+      <stop offset="1" stop-color="#EDF5FF" stop-opacity="0.04"/>
+    </radialGradient>
+    <radialGradient id="core_fill" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(96 96) rotate(90) scale(35)">
+      <stop stop-color="#F5F9FF" stop-opacity="0.65"/>
+      <stop offset="1" stop-color="#F0F6FF" stop-opacity="0.16"/>
+    </radialGradient>
+  </defs>
+</svg>

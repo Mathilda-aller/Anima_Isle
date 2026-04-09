@@ -1,0 +1,18 @@
+<svg width="272" height="272" viewBox="0 0 272 272" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <g filter="url(#blur)">
+    <rect width="272" height="272" rx="136" fill="url(#grad)"/>
+  </g>
+  <defs>
+    <filter id="blur" x="-64" y="-64" width="400" height="400" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+      <feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
+      <feGaussianBlur stdDeviation="32" result="effect1_foregroundBlur"/>
+    </filter>
+    <radialGradient id="grad" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(136 136) rotate(90) scale(67.766)">
+      <stop stop-color="#74D4EA"/>
+      <stop offset="0.1274" stop-color="#5AA6B7"/>
+      <stop offset="0.25481" stop-color="#417884"/>
+      <stop offset="1" stop-color="#417884" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+</svg>

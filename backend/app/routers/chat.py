@@ -1,0 +1,878 @@
+import asyncio
+import json
+import logging
+import os
+import random
+import time
+import uuid
+from typing import Any, Dict, List
+
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi.responses import StreamingResponse
+from sqlalchemy.orm import Session
+
+from app import crud, deps, models, schemas
+from app.constants.islands import DEFAULT_RECOMMENDED_TAGS
+from app.utils import ai_engine, risk_engine, search_engine
+
+logger = logging.getLogger(__name__)
+router = APIRouter()
+QUESTIONS_DB: Dict[str, List[str]] = {}
+
+
+def _log_chat_event(log_level: int, event: str, **fields: Any) -> None:
+    logger.log(log_level, json.dumps({"event": event, **fields}, ensure_ascii=False, default=str))
+
+
+def _build_error_detail(code: str, trace_id: str) -> str:
+    return f"{code}|trace_id={trace_id}"
+
+
+def _map_generation_error(exc: Exception) -> str:
+    if isinstance(exc, ai_engine.AIEngineError):
+        return exc.code
+    if isinstance(exc, risk_engine.RiskEngineError):
+        return exc.code
+
+    message = str(exc).lower()
+    if "ticket" in message or "commit" in message or "database" in message or "persist" in message:
+        return "ticket_persist_failed"
+    if "search" in message or "zilliz" in message or "milvus" in message:
+        return "vector_search_failed"
+    return "generation_failed"
+
+
+def _stage_start(
+    trace_id: str,
+    session_id: str,
+    user_id: int,
+    step_name: str,
+) -> float:
+    _log_chat_event(
+        logging.INFO,
+        "chat.reply.stage.start",
+        trace_id=trace_id,
+        session_id=session_id,
+        user_id=user_id,
+        step_name=step_name,
+    )
+    return time.perf_counter()
+
+
+def _stage_end(
+    trace_id: str,
+    session_id: str,
+    user_id: int,
+    breakdown: Dict[str, int],
+    step_name: str,
+    started_at: float,
+    *,
+    success: bool = True,
+    **extra: Any,
+) -> None:
+    elapsed_ms = int((time.perf_counter() - started_at) * 1000)
+    breakdown[step_name] = elapsed_ms
+    _log_chat_event(
+        logging.INFO if success else logging.ERROR,
+        "chat.reply.stage.end",
+        trace_id=trace_id,
+        session_id=session_id,
+        user_id=user_id,
+        step_name=step_name,
+        elapsed_ms=elapsed_ms,
+        success=success,
+        **extra,
+    )
+
+
+def _sse_event(event: str, data: Dict[str, Any]) -> str:
+    return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False, default=str)}\n\n"
+
+
+def load_questions_from_json() -> None:
+    global QUESTIONS_DB
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    root_dir = os.path.dirname(os.path.dirname(current_dir))
+    json_path = os.path.join(root_dir, "data", "questions.json")
+
+    try:
+        if os.path.exists(json_path):
+            with open(json_path, "r", encoding="utf-8") as f:
+                QUESTIONS_DB = json.load(f)
+            logger.info("✅ [Startup] Loaded Questions: %s Turn-1 items.", len(QUESTIONS_DB.get("turn_1", [])))
+        else:
+            logger.warning("⚠️ [Startup] questions.json not found at %s", json_path)
+            QUESTIONS_DB = {
+                "turn_1": ["今天过得怎么样？", "此刻你的心情颜色是什么？"],
+                "turn_2": ["能多跟我讲讲吗？", "这带给你什么样的感受？"],
+            }
+    except Exception as exc:
+        logger.error("❌ [Startup] Failed to load questions.json: %s", exc)
+        QUESTIONS_DB = {
+            "turn_1": ["System Error: Default Q1"],
+            "turn_2": ["System Error: Default Q2"],
+        }
+
+
+@router.post("/start", response_model=schemas.ChatStartResponse)
+def start_chat(
+    db: Session = Depends(deps.get_db),
+    current_user: models.User = Depends(deps.get_current_user),
+):
+    chat_session = crud.create_chat_session(db, user_id=current_user.id)
+    q1_list = QUESTIONS_DB.get("turn_1", ["今天发生了什么？"])
+    first_q = random.choice(q1_list)
+    logger.info("User %s started chat session %s", current_user.id, chat_session.session_id)
+    return schemas.ChatStartResponse(session_id=chat_session.session_id, first_question=first_q)
+
+
+@router.post("/transcribe", response_model=schemas.ChatVoiceTranscribeResponse)
+async def transcribe_chat_audio(
+    session_id: str = Form(...),
+    question_index: int = Form(...),
+    duration: float = Form(0.0),
+    file: UploadFile = File(...),
+    db: Session = Depends(deps.get_db),
+    current_user: models.User = Depends(deps.get_current_user),
+):
+    trace_id = uuid.uuid4().hex[:12]
+    session = crud.get_chat_session(db, session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+    if session.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to access this session")
+
+    expected_step = 0 if question_index == 1 else 1 if question_index == 2 else None
+    if expected_step is None:
+        raise HTTPException(status_code=422, detail="Unsupported question index")
+    if session.current_step != expected_step:
+        raise HTTPException(status_code=409, detail="Question index does not match current session step")
+
+    audio_bytes = await file.read()
+    if not audio_bytes:
+        raise HTTPException(status_code=400, detail="Empty audio file")
+    mime_type = file.content_type or "audio/webm"
+    if not mime_type.startswith("audio/"):
+        raise HTTPException(status_code=400, detail="Invalid audio file type")
+
+    try:
+        transcript_text = await ai_engine.transcribe_audio(
+            audio_bytes=audio_bytes,
+            mime_type=mime_type,
+            language="zh",
+            trace_id=trace_id,
+        )
+    except Exception as exc:
+        error_code = exc.code if isinstance(exc, ai_engine.AIEngineError) else "audio_transcription_failed"
+        _log_chat_event(
+            logging.ERROR,
+            "chat.transcribe.failed",
+            trace_id=trace_id,
+            session_id=session_id,
+            user_id=current_user.id,
+            error_code=error_code,
+            error_type=type(exc).__name__,
+            error_message=str(exc),
+        )
+        raise HTTPException(status_code=502, detail=_build_error_detail(error_code, trace_id))
+
+    return schemas.ChatVoiceTranscribeResponse(
+        session_id=session_id,
+        question_index=question_index,
+        text=transcript_text,
+        duration=duration,
+        is_final=True,
+    )
+
+
+def _write_ai_log(
+    *,
+    db: Session,
+    trace_id: str,
+    session_id: str,
+    user_id: int,
+    full_context: str,
+    reply_text: str,
+    risk_flag: bool,
+    breakdown: Dict[str, int],
+) -> None:
+    ai_log_started = _stage_start(trace_id, session_id, user_id, "ai_log_write")
+    try:
+        ai_log = models.AIChatLog(
+            session_id=session_id,
+            user_id=user_id,
+            user_full_input=full_context,
+            ai_reply_content=reply_text,
+            ai_risk_flag=risk_flag,
+            ai_sentiment_score=None,
+            duration_ms=sum(breakdown.values()) if breakdown else 0,
+        )
+        db.add(ai_log)
+        db.commit()
+        _stage_end(trace_id, session_id, user_id, breakdown, "ai_log_write", ai_log_started)
+    except Exception as exc:
+        _stage_end(
+            trace_id,
+            session_id,
+            user_id,
+            breakdown,
+            "ai_log_write",
+            ai_log_started,
+            success=False,
+            error_code="audit_log_failed_nonfatal",
+            error_type=type(exc).__name__,
+            error_message=str(exc),
+        )
+        db.rollback()
+
+
+async def _generate_ticket_bundle(
+    *,
+    db: Session,
+    session: models.ChatSession,
+    current_user: models.User,
+    full_context: str,
+    trace_id: str,
+    breakdown: Dict[str, int],
+    reply_text: str,
+) -> Dict[str, Any]:
+    route_started = _stage_start(trace_id, session.session_id, current_user.id, "emotion_route")
+    embedding_started = _stage_start(trace_id, session.session_id, current_user.id, "embedding")
+    route_task = asyncio.create_task(ai_engine.classify_emotion_route(full_context, trace_id=trace_id))
+    embedding_task = asyncio.create_task(ai_engine.get_embedding(full_context, trace_id=trace_id))
+
+    try:
+        route_result, vector = await asyncio.gather(route_task, embedding_task)
+        _stage_end(
+            trace_id,
+            session.session_id,
+            current_user.id,
+            breakdown,
+            "emotion_route",
+            route_started,
+            island_target=route_result["Island"],
+            intensity=route_result["Intensity"],
+        )
+        _stage_end(
+            trace_id,
+            session.session_id,
+            current_user.id,
+            breakdown,
+            "embedding",
+            embedding_started,
+            vector_size=len(vector),
+        )
+    except Exception:
+        if route_task.done():
+            try:
+                route_task.result()
+            except Exception as exc:
+                _stage_end(
+                    trace_id,
+                    session.session_id,
+                    current_user.id,
+                    breakdown,
+                    "emotion_route",
+                    route_started,
+                    success=False,
+                    error_code=_map_generation_error(exc),
+                    error_type=type(exc).__name__,
+                    error_message=str(exc),
+                )
+        if embedding_task.done():
+            try:
+                embedding_task.result()
+            except Exception as exc:
+                _stage_end(
+                    trace_id,
+                    session.session_id,
+                    current_user.id,
+                    breakdown,
+                    "embedding",
+                    embedding_started,
+                    success=False,
+                    error_code=_map_generation_error(exc),
+                    error_type=type(exc).__name__,
+                    error_message=str(exc),
+                )
+        raise
+
+    search_started = _stage_start(trace_id, session.session_id, current_user.id, "vector_search")
+    candidate_images = search_engine.search_island_candidates(
+        vector=vector,
+        island_target=route_result["Island"],
+        intensity=route_result["Intensity"],
+        top_k=3,
+    )
+    _stage_end(
+        trace_id,
+        session.session_id,
+        current_user.id,
+        breakdown,
+        "vector_search",
+        search_started,
+        candidate_count=len(candidate_images),
+    )
+    primary = candidate_images[0]
+
+    poem_started = _stage_start(trace_id, session.session_id, current_user.id, "three_line_poem")
+    generated_poem = await ai_engine.generate_three_line_poem(
+        full_context,
+        primary.get("image_description") or "海面的雾与微光",
+        trace_id=trace_id,
+    )
+    _stage_end(
+        trace_id,
+        session.session_id,
+        current_user.id,
+        breakdown,
+        "three_line_poem",
+        poem_started,
+    )
+
+    ticket_payload = {
+        "image_url": primary.get("image_url"),
+        "poem_content": generated_poem,
+        "image_style": None,
+        "user_diary_summary": full_context,
+        "island_category": route_result["Island"],
+        "selected_image_id": primary.get("image_id"),
+    }
+
+    ticket_started = _stage_start(trace_id, session.session_id, current_user.id, "ticket_create")
+    new_ticket = crud.create_ticket(db, ticket_payload, user_id=current_user.id)
+    _stage_end(
+        trace_id,
+        session.session_id,
+        current_user.id,
+        breakdown,
+        "ticket_create",
+        ticket_started,
+        ticket_uid=new_ticket.ticket_uid,
+    )
+
+    session_finish_started = _stage_start(trace_id, session.session_id, current_user.id, "session_finish")
+    crud.update_chat_step(db, session.session_id, step=3)
+    _stage_end(trace_id, session.session_id, current_user.id, breakdown, "session_finish", session_finish_started)
+
+    _write_ai_log(
+        db=db,
+        trace_id=trace_id,
+        session_id=session.session_id,
+        user_id=current_user.id,
+        full_context=full_context,
+        reply_text=reply_text,
+        risk_flag=False,
+        breakdown=breakdown,
+    )
+
+    return {
+        "id": new_ticket.id,
+        "ticket_uid": new_ticket.ticket_uid,
+        "image_url": primary.get("image_url"),
+        "poem_content": generated_poem,
+        "island_category": route_result["Island"],
+        "is_public": False,
+        "created_at": new_ticket.created_at,
+        "recommended_tags": DEFAULT_RECOMMENDED_TAGS.copy(),
+        "candidate_images": candidate_images,
+    }
+
+
+async def _save_q2_and_build_context(
+    *,
+    db: Session,
+    session: models.ChatSession,
+    reply_req: schemas.ChatReplyRequest,
+    trace_id: str,
+    user_id: int,
+    breakdown: Dict[str, int],
+) -> tuple[models.ChatSession, str]:
+    save_q2_started = _stage_start(trace_id, session.session_id, user_id, "save_q2")
+    session = crud.update_chat_step(
+        db,
+        session_id=session.session_id,
+        step=2,
+        answer=reply_req.content,
+        turn_index=2,
+    )
+    _stage_end(trace_id, session.session_id, user_id, breakdown, "save_q2", save_q2_started)
+    full_context = f"{session.turn_1_answer}。{session.turn_2_answer}"
+    return session, full_context
+
+
+async def _build_sync_final_response(
+    *,
+    db: Session,
+    session: models.ChatSession,
+    current_user: models.User,
+    full_context: str,
+    trace_id: str,
+    breakdown: Dict[str, int],
+    request_started: float,
+) -> schemas.ChatStepResponse:
+    _log_chat_event(
+        logging.WARNING,
+        "chat.reply.compat_mode",
+        trace_id=trace_id,
+        session_id=session.session_id,
+        user_id=current_user.id,
+        mode="sync_final_generation",
+    )
+
+    risk_started = _stage_start(trace_id, session.session_id, current_user.id, "risk_check")
+    risk_result = await risk_engine.check_text_risk(full_context, trace_id=trace_id)
+    _stage_end(
+        trace_id,
+        session.session_id,
+        current_user.id,
+        breakdown,
+        "risk_check",
+        risk_started,
+        level=risk_result.level,
+        reason_code=risk_result.reason_code,
+        should_block=risk_result.should_block,
+        hit_type=risk_result.hit_type,
+    )
+
+    if risk_result.should_block:
+        risk_reply_text = "我感觉到你现在非常痛苦，请允许我暂停一下... (风控拦截)"
+        _write_ai_log(
+            db=db,
+            trace_id=trace_id,
+            session_id=session.session_id,
+            user_id=current_user.id,
+            full_context=full_context,
+            reply_text=risk_reply_text,
+            risk_flag=True,
+            breakdown=breakdown,
+        )
+        _log_chat_event(
+            logging.WARNING,
+            "chat.reply.request.end",
+            trace_id=trace_id,
+            session_id=session.session_id,
+            user_id=current_user.id,
+            state="risk_blocked",
+            elapsed_ms=int((time.perf_counter() - request_started) * 1000),
+            breakdown=breakdown,
+            mode="compat_sync",
+        )
+        return schemas.ChatStepResponse(session_id=session.session_id, state="risk_blocked", reply_text=risk_reply_text)
+
+    empathy_started = _stage_start(trace_id, session.session_id, current_user.id, "empathy_text")
+    empathy_task = asyncio.create_task(ai_engine.generate_empathy_text(full_context, trace_id=trace_id))
+
+    try:
+        reply_text = await empathy_task
+        _stage_end(trace_id, session.session_id, current_user.id, breakdown, "empathy_text", empathy_started, reply_len=len(reply_text))
+        ticket_data = await _generate_ticket_bundle(
+            db=db,
+            session=session,
+            current_user=current_user,
+            full_context=full_context,
+            trace_id=trace_id,
+            breakdown=breakdown,
+            reply_text=reply_text,
+        )
+        _log_chat_event(
+            logging.INFO,
+            "chat.reply.request.end",
+            trace_id=trace_id,
+            session_id=session.session_id,
+            user_id=current_user.id,
+            state="finished",
+            elapsed_ms=int((time.perf_counter() - request_started) * 1000),
+            breakdown=breakdown,
+            mode="compat_sync",
+        )
+        return schemas.ChatStepResponse(
+            session_id=session.session_id,
+            state="finished",
+            reply_text=reply_text,
+            ticket_data=ticket_data,
+        )
+    except Exception as exc:
+        if empathy_task.done():
+            try:
+                empathy_task.result()
+            except Exception as empathy_exc:
+                _stage_end(
+                    trace_id,
+                    session.session_id,
+                    current_user.id,
+                    breakdown,
+                    "empathy_text",
+                    empathy_started,
+                    success=False,
+                    error_code=_map_generation_error(empathy_exc),
+                    error_type=type(empathy_exc).__name__,
+                    error_message=str(empathy_exc),
+                )
+                exc = empathy_exc
+        raise exc
+
+
+@router.post("/reply", response_model=schemas.ChatStepResponse)
+async def reply_chat(
+    reply_req: schemas.ChatReplyRequest,
+    db: Session = Depends(deps.get_db),
+    current_user: models.User = Depends(deps.get_current_user),
+):
+    trace_id = uuid.uuid4().hex[:12]
+    request_started = time.perf_counter()
+    breakdown: Dict[str, int] = {}
+
+    _log_chat_event(
+        logging.INFO,
+        "chat.reply.request.start",
+        trace_id=trace_id,
+        session_id=reply_req.session_id,
+        user_id=current_user.id,
+    )
+
+    lookup_started = _stage_start(trace_id, reply_req.session_id, current_user.id, "session_lookup")
+    session = crud.get_chat_session(db, reply_req.session_id)
+    if not session:
+        _stage_end(trace_id, reply_req.session_id, current_user.id, breakdown, "session_lookup", lookup_started, success=False, error_code="session_not_found")
+        raise HTTPException(status_code=404, detail="Session not found")
+    _stage_end(trace_id, reply_req.session_id, current_user.id, breakdown, "session_lookup", lookup_started, current_step=session.current_step)
+
+    if session.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to access this session")
+
+    if session.current_step == 0:
+        q2_list = QUESTIONS_DB.get("turn_2", ["还能再多说一点吗？"])
+        next_q = random.choice(q2_list)
+        save_q1_started = _stage_start(trace_id, session.session_id, current_user.id, "save_q1")
+        crud.update_chat_step(db, session_id=session.session_id, step=1, answer=reply_req.content, turn_index=1)
+        _stage_end(trace_id, session.session_id, current_user.id, breakdown, "save_q1", save_q1_started)
+        _log_chat_event(
+            logging.INFO,
+            "chat.reply.request.end",
+            trace_id=trace_id,
+            session_id=session.session_id,
+            user_id=current_user.id,
+            state="processing",
+            elapsed_ms=int((time.perf_counter() - request_started) * 1000),
+            breakdown=breakdown,
+        )
+        return schemas.ChatStepResponse(session_id=session.session_id, state="processing", reply_text=next_q)
+
+    if session.current_step != 1:
+        _log_chat_event(
+            logging.INFO,
+            "chat.reply.request.end",
+            trace_id=trace_id,
+            session_id=session.session_id,
+            user_id=current_user.id,
+            state="finished",
+            elapsed_ms=int((time.perf_counter() - request_started) * 1000),
+            breakdown=breakdown,
+        )
+        return schemas.ChatStepResponse(session_id=session.session_id, state="finished", reply_text="本次会话已结束，请重新开始。")
+
+    session, full_context = await _save_q2_and_build_context(
+        db=db,
+        session=session,
+        reply_req=reply_req,
+        trace_id=trace_id,
+        user_id=current_user.id,
+        breakdown=breakdown,
+    )
+
+    try:
+        return await _build_sync_final_response(
+            db=db,
+            session=session,
+            current_user=current_user,
+            full_context=full_context,
+            trace_id=trace_id,
+            breakdown=breakdown,
+            request_started=request_started,
+        )
+    except Exception as exc:
+        error_code = _map_generation_error(exc)
+        _log_chat_event(
+            logging.ERROR,
+            "chat.reply.request.failed",
+            trace_id=trace_id,
+            session_id=session.session_id,
+            user_id=current_user.id,
+            error_code=error_code,
+            error_type=type(exc).__name__,
+            error_message=str(exc),
+            elapsed_ms=int((time.perf_counter() - request_started) * 1000),
+            breakdown=breakdown,
+            mode="compat_sync",
+        )
+        raise HTTPException(status_code=500, detail=_build_error_detail(error_code, trace_id))
+
+
+@router.post("/reply/stream")
+async def reply_chat_stream(
+    reply_req: schemas.ChatReplyRequest,
+    db: Session = Depends(deps.get_db),
+    current_user: models.User = Depends(deps.get_current_user),
+):
+    trace_id = uuid.uuid4().hex[:12]
+    request_started = time.perf_counter()
+    breakdown: Dict[str, int] = {}
+
+    lookup_started = _stage_start(trace_id, reply_req.session_id, current_user.id, "session_lookup")
+    session = crud.get_chat_session(db, reply_req.session_id)
+    if not session:
+        _stage_end(trace_id, reply_req.session_id, current_user.id, breakdown, "session_lookup", lookup_started, success=False, error_code="session_not_found")
+        raise HTTPException(status_code=404, detail="Session not found")
+    _stage_end(trace_id, reply_req.session_id, current_user.id, breakdown, "session_lookup", lookup_started, current_step=session.current_step)
+
+    if session.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to access this session")
+    if session.current_step != 1:
+        raise HTTPException(status_code=409, detail="Stream reply only supports the second answer")
+
+    session, full_context = await _save_q2_and_build_context(
+        db=db,
+        session=session,
+        reply_req=reply_req,
+        trace_id=trace_id,
+        user_id=current_user.id,
+        breakdown=breakdown,
+    )
+
+    async def event_stream():
+        yield _sse_event("ack", {"session_id": session.session_id, "trace_id": trace_id})
+
+        risk_started = _stage_start(trace_id, session.session_id, current_user.id, "risk_check")
+        try:
+            risk_result = await risk_engine.check_text_risk(full_context, trace_id=trace_id)
+            _stage_end(
+                trace_id,
+                session.session_id,
+                current_user.id,
+                breakdown,
+                "risk_check",
+                risk_started,
+                level=risk_result.level,
+                reason_code=risk_result.reason_code,
+                should_block=risk_result.should_block,
+                hit_type=risk_result.hit_type,
+            )
+        except Exception as exc:
+            error_code = _map_generation_error(exc)
+            _stage_end(
+                trace_id,
+                session.session_id,
+                current_user.id,
+                breakdown,
+                "risk_check",
+                risk_started,
+                success=False,
+                error_code=error_code,
+                error_type=type(exc).__name__,
+                error_message=str(exc),
+            )
+            yield _sse_event("error", {"code": error_code, "message": str(exc), "trace_id": trace_id})
+            yield _sse_event("done", {"status": "error", "trace_id": trace_id})
+            return
+
+        yield _sse_event(
+            "risk",
+            {
+                "level": risk_result.level,
+                "reason_code": risk_result.reason_code,
+                "should_block": risk_result.should_block,
+                "hit_type": risk_result.hit_type,
+                "trace_id": trace_id,
+            },
+        )
+
+        if risk_result.should_block:
+            risk_reply_text = "我感觉到你现在非常痛苦，请允许我暂停一下... (风控拦截)"
+            _write_ai_log(
+                db=db,
+                trace_id=trace_id,
+                session_id=session.session_id,
+                user_id=current_user.id,
+                full_context=full_context,
+                reply_text=risk_reply_text,
+                risk_flag=True,
+                breakdown=breakdown,
+            )
+            yield _sse_event("done", {"status": "risk_blocked", "trace_id": trace_id})
+            return
+
+        route_started = _stage_start(trace_id, session.session_id, current_user.id, "emotion_route")
+        embedding_started = _stage_start(trace_id, session.session_id, current_user.id, "embedding")
+        route_task = asyncio.create_task(ai_engine.classify_emotion_route(full_context, trace_id=trace_id))
+        embedding_task = asyncio.create_task(ai_engine.get_embedding(full_context, trace_id=trace_id))
+        yield _sse_event("asset_started", {"trace_id": trace_id})
+
+        empathy_started = _stage_start(trace_id, session.session_id, current_user.id, "empathy_text")
+        reply_chunks: List[str] = []
+        async for delta in ai_engine.stream_empathy_text(full_context, trace_id=trace_id):
+            reply_chunks.append(delta)
+            yield _sse_event("empathy_delta", {"delta": delta, "trace_id": trace_id})
+        reply_text = "".join(reply_chunks).strip() or ai_engine._safe_fallback_reply()
+        _stage_end(
+            trace_id,
+            session.session_id,
+            current_user.id,
+            breakdown,
+            "empathy_text",
+            empathy_started,
+            reply_len=len(reply_text),
+        )
+        yield _sse_event("empathy_done", {"reply_text": reply_text, "trace_id": trace_id})
+
+        try:
+            route_result, vector = await asyncio.gather(route_task, embedding_task)
+            _stage_end(
+                trace_id,
+                session.session_id,
+                current_user.id,
+                breakdown,
+                "emotion_route",
+                route_started,
+                island_target=route_result["Island"],
+                intensity=route_result["Intensity"],
+            )
+            _stage_end(
+                trace_id,
+                session.session_id,
+                current_user.id,
+                breakdown,
+                "embedding",
+                embedding_started,
+                vector_size=len(vector),
+            )
+
+            search_started = _stage_start(trace_id, session.session_id, current_user.id, "vector_search")
+            candidate_images = search_engine.search_island_candidates(
+                vector=vector,
+                island_target=route_result["Island"],
+                intensity=route_result["Intensity"],
+                top_k=3,
+            )
+            _stage_end(
+                trace_id,
+                session.session_id,
+                current_user.id,
+                breakdown,
+                "vector_search",
+                search_started,
+                candidate_count=len(candidate_images),
+            )
+            primary = candidate_images[0]
+
+            poem_started = _stage_start(trace_id, session.session_id, current_user.id, "three_line_poem")
+            generated_poem = await ai_engine.generate_three_line_poem(
+                full_context,
+                primary.get("image_description") or "海面的雾与微光",
+                trace_id=trace_id,
+            )
+            _stage_end(trace_id, session.session_id, current_user.id, breakdown, "three_line_poem", poem_started)
+
+            ticket_payload = {
+                "image_url": primary.get("image_url"),
+                "poem_content": generated_poem,
+                "image_style": None,
+                "user_diary_summary": full_context,
+                "island_category": route_result["Island"],
+                "selected_image_id": primary.get("image_id"),
+            }
+            ticket_started = _stage_start(trace_id, session.session_id, current_user.id, "ticket_create")
+            new_ticket = crud.create_ticket(db, ticket_payload, user_id=current_user.id)
+            _stage_end(trace_id, session.session_id, current_user.id, breakdown, "ticket_create", ticket_started, ticket_uid=new_ticket.ticket_uid)
+
+            session_finish_started = _stage_start(trace_id, session.session_id, current_user.id, "session_finish")
+            crud.update_chat_step(db, session.session_id, step=3)
+            _stage_end(trace_id, session.session_id, current_user.id, breakdown, "session_finish", session_finish_started)
+
+            _write_ai_log(
+                db=db,
+                trace_id=trace_id,
+                session_id=session.session_id,
+                user_id=current_user.id,
+                full_context=full_context,
+                reply_text=reply_text,
+                risk_flag=False,
+                breakdown=breakdown,
+            )
+
+            ticket_data = {
+                "id": new_ticket.id,
+                "ticket_uid": new_ticket.ticket_uid,
+                "image_url": primary.get("image_url"),
+                "poem_content": generated_poem,
+                "island_category": route_result["Island"],
+                "is_public": False,
+                "created_at": new_ticket.created_at,
+                "recommended_tags": DEFAULT_RECOMMENDED_TAGS.copy(),
+                "candidate_images": candidate_images,
+            }
+            yield _sse_event("asset_ready", {"ticket_data": ticket_data, "trace_id": trace_id})
+            yield _sse_event(
+                "done",
+                {
+                    "status": "finished",
+                    "trace_id": trace_id,
+                    "elapsed_ms": int((time.perf_counter() - request_started) * 1000),
+                },
+            )
+        except Exception as exc:
+            error_code = _map_generation_error(exc)
+            _log_chat_event(
+                logging.ERROR,
+                "chat.reply.stream.failed",
+                trace_id=trace_id,
+                session_id=session.session_id,
+                user_id=current_user.id,
+                error_code=error_code,
+                error_type=type(exc).__name__,
+                error_message=str(exc),
+                elapsed_ms=int((time.perf_counter() - request_started) * 1000),
+                breakdown=breakdown,
+            )
+            yield _sse_event("error", {"code": error_code, "message": str(exc), "trace_id": trace_id})
+            yield _sse_event("done", {"status": "error", "trace_id": trace_id})
+
+    headers = {
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive",
+        "X-Accel-Buffering": "no",
+    }
+    return StreamingResponse(event_stream(), media_type="text/event-stream", headers=headers)
+
+
+@router.post("/confirm", response_model=schemas.BaseResponse)
+def confirm_ticket(
+    confirm_req: schemas.TicketConfirmRequest,
+    db: Session = Depends(deps.get_db),
+    current_user: models.User = Depends(deps.get_current_user),
+):
+    ticket = crud.get_ticket_by_uid(db, confirm_req.ticket_uid)
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+    if ticket.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    if ticket.image_url != confirm_req.final_image_url:
+        crud.update_ticket_selection(
+            db,
+            ticket_uid=ticket.ticket_uid,
+            image_url=confirm_req.final_image_url,
+            style=confirm_req.final_style,
+            reroll_count=confirm_req.reroll_count,
+            selected_image_id=confirm_req.final_image_url,
+        )
+
+    return schemas.BaseResponse(
+        code=200,
+        message="ticket_confirmed",
+        data={
+            "ticket_uid": ticket.ticket_uid,
+            "final_image_url": confirm_req.final_image_url,
+            "reroll_count": confirm_req.reroll_count,
+        },
+    )

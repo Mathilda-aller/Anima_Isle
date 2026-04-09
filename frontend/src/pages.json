@@ -1,0 +1,112 @@
+{
+  "pages": [
+    {
+      "path": "modules/auth/pages/login/index",
+      "style": {
+        "navigationBarTitleText": "登录"
+      }
+    },
+    {
+      "path": "modules/auth/pages/register/index",
+      "style": {
+        "navigationBarTitleText": "注册"
+      }
+    },
+    {
+      "path": "modules/auth/pages/resident/index",
+      "style": {
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "modules/auth/pages/resident-ticket/index",
+      "style": {
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "modules/auth/pages/style/index",
+      "style": {
+        "navigationBarTitleText": "选择风格"
+      }
+    },
+    {
+      "path": "modules/chat/pages/home/index",
+      "style": {
+        "navigationBarTitleText": "Anima Isle"
+      }
+    },
+    {
+      "path": "modules/chat/pages/cabin/index",
+      "style": {
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "modules/chat/pages/voice/index",
+      "style": {
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "modules/chat/pages/generating/index",
+      "style": {
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "modules/ticket/pages/list/index",
+      "style": {
+        "navigationBarTitleText": "记忆航线"
+      }
+    },
+    {
+      "path": "modules/ticket/pages/detail/index",
+      "style": {
+        "navigationBarTitleText": "船票详情"
+      }
+    },
+    {
+      "path": "modules/ticket/pages/viewer/index",
+      "style": {
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "modules/square/pages/map/index",
+      "style": {
+        "navigationBarTitleText": "共感地图"
+      }
+    },
+    {
+      "path": "modules/square/pages/island/index",
+      "style": {
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "modules/square/pages/publish/index",
+      "style": {
+        "navigationBarTitleText": "发送到岛屿"
+      }
+    },
+    {
+      "path": "modules/user/pages/aid/index",
+      "style": {
+        "navigationStyle": "custom"
+      }
+    }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "white",
+    "navigationBarTitleText": "Anima Isle",
+    "navigationBarBackgroundColor": "#0a0a1a",
+    "backgroundColor": "#0a0a1a"
+  },
+  "easycom": {
+    "autoscan": true,
+    "custom": {
+      "^u-(.*)": "uview-plus/components/u-$1/u-$1.vue"
+    }
+  }
+}

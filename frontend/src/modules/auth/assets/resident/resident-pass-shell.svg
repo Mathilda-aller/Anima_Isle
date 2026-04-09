@@ -1,0 +1,29 @@
+<svg preserveAspectRatio="none" width="100%" height="100%" overflow="visible" style="display: block;" viewBox="0 0 102.224 174.264" fill="none" xmlns="http://www.w3.org/2000/svg">
+<foreignObject x="0" y="1.19209e-07" width="102.224" height="174.264"><div xmlns="http://www.w3.org/1999/xhtml" style="backdrop-filter:blur(0.57px);clip-path:url(#bgblur_0_0_6_clip_path);height:100%;width:100%"></div></foreignObject><g id="Rectangle 1" filter="url(#filter0_di_0_6)" data-figma-bg-blur-radius="1.13898">
+<path fill-rule="evenodd" clip-rule="evenodd" d="M9.11187 115.546C12.0998 115.546 14.522 113.032 14.522 109.931C14.522 106.83 12.0998 104.316 9.11187 104.316V16.8C9.11187 11.9249 13.0639 7.97288 17.939 7.97288H84.2848C89.1598 7.97288 93.1119 11.9249 93.1119 16.8V104.316C90.1239 104.316 87.7017 106.83 87.7017 109.931C87.7017 113.032 90.1239 115.546 93.1119 115.546V155.186C93.1119 160.062 89.1599 164.014 84.2848 164.014H17.939C13.0639 164.014 9.11187 160.062 9.11187 155.186V115.546Z" fill="url(#paint0_radial_0_6)" shape-rendering="crispEdges"/>
+</g>
+<defs>
+<filter id="filter0_di_0_6" x="0" y="1.19209e-07" width="102.224" height="174.264" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<feFlood flood-opacity="0" result="BackgroundImageFix"/>
+<feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+<feOffset dy="1.13898"/>
+<feGaussianBlur stdDeviation="4.55593"/>
+<feComposite in2="hardAlpha" operator="out"/>
+<feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0"/>
+<feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_0_6"/>
+<feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_0_6" result="shape"/>
+<feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+<feOffset dy="1.13898"/>
+<feGaussianBlur stdDeviation="0.569492"/>
+<feComposite in2="hardAlpha" operator="arithmetic" k2="-1" k3="1"/>
+<feColorMatrix type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.25 0"/>
+<feBlend mode="normal" in2="shape" result="effect2_innerShadow_0_6"/>
+</filter>
+<clipPath id="bgblur_0_0_6_clip_path" transform="translate(0 -1.19209e-07)"><path fill-rule="evenodd" clip-rule="evenodd" d="M9.11187 115.546C12.0998 115.546 14.522 113.032 14.522 109.931C14.522 106.83 12.0998 104.316 9.11187 104.316V16.8C9.11187 11.9249 13.0639 7.97288 17.939 7.97288H84.2848C89.1598 7.97288 93.1119 11.9249 93.1119 16.8V104.316C90.1239 104.316 87.7017 106.83 87.7017 109.931C87.7017 113.032 90.1239 115.546 93.1119 115.546V155.186C93.1119 160.062 89.1599 164.014 84.2848 164.014H17.939C13.0639 164.014 9.11187 160.062 9.11187 155.186V115.546Z"/>
+</clipPath><radialGradient id="paint0_radial_0_6" cx="0" cy="0" r="1" gradientTransform="matrix(-94.6297 163.673 -88.1087 -87.2088 93.1119 7.97289)" gradientUnits="userSpaceOnUse">
+<stop offset="0.144231" stop-color="#12D3FF" stop-opacity="0.19"/>
+<stop offset="0.697115" stop-color="#EEFAFD" stop-opacity="0.01"/>
+<stop offset="1" stop-color="white" stop-opacity="0"/>
+</radialGradient>
+</defs>
+</svg>

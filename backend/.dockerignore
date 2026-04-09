@@ -1,0 +1,29 @@
+# 忽略 Git 历史
+.git/
+.gitignore
+
+# 忽略本地虚拟环境 
+.venv/
+venv/
+
+# 忽略 IDE 配置
+.vscode/
+.idea/
+
+# 忽略缓存
+__pycache__/
+*.pyc
+
+# 忽略本地的密钥文件
+.env
+
+# 忽略 Dockerfile 本身 
+Dockerfile
+.dockerignore
+
+# 忽略说明文档
+README.md
+
+# 忽略脚本和数据 
+scripts/
+data/
