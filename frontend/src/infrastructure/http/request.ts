@@ -95,6 +95,38 @@ function isBaseResponseEnvelope(payload: unknown): payload is BaseResponseEnvelo
   );
 }
 
+function shouldUseH5FetchForFormData(data: unknown): data is FormData {
+  return (
+    typeof window !== "undefined" &&
+    typeof document !== "undefined" &&
+    typeof fetch === "function" &&
+    typeof FormData !== "undefined" &&
+    data instanceof FormData
+  );
+}
+
+async function resolveFetchPayload<TResponse>(response: Response): Promise<RequestResult<TResponse>> {
+  const contentType = response.headers.get("content-type") || "";
+  let data: TResponse;
+
+  if (contentType.includes("application/json")) {
+    data = (await response.json()) as TResponse;
+  } else {
+    data = (await response.text()) as TResponse;
+  }
+
+  const header: Record<string, string> = {};
+  response.headers.forEach((value, key) => {
+    header[key] = value;
+  });
+
+  return {
+    data,
+    statusCode: response.status,
+    header,
+  };
+}
+
 function resolveRequestResponse<TResponse>(response: RequestResult<TResponse>): TResponse {
   if (response.statusCode >= 200 && response.statusCode < 300) {
     if (isBaseResponseEnvelope(response.data)) {
@@ -131,6 +163,34 @@ export function requestCancelable<TResponse, TData = unknown>(
   const url = buildUrl(options.path, options.query);
   let cancelled = false;
   let requestTask: AbortableRequestTask | null = null;
+
+  if (shouldUseH5FetchForFormData(options.data)) {
+    const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+    const promise = fetch(url, {
+      method: options.method || "GET",
+      body: options.data,
+      headers,
+      signal: controller?.signal,
+    })
+      .then((response) => resolveFetchPayload<TResponse>(response))
+      .then((response) => resolveRequestResponse(response))
+      .catch((error: unknown) => {
+        if ((error as Error | undefined)?.name === "AbortError") {
+          throw buildAbortError();
+        }
+        throw error;
+      });
+
+    return {
+      promise,
+      cancel: () => {
+        cancelled = true;
+        if (cancelled) {
+          controller?.abort();
+        }
+      },
+    };
+  }
 
   const promise = new Promise<RequestResult<TResponse>>((resolve, reject) => {
     requestTask = uni.request({

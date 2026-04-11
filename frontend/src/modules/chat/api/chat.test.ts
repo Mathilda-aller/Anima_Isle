@@ -85,4 +85,37 @@ describe("chat api cancellation", () => {
     await expect(operation.promise).rejects.toMatchObject({ detail: "request_aborted" });
     expect(abort).toHaveBeenCalledTimes(1);
   });
+
+  it("uses fetch for H5 FormData transcribe requests", async () => {
+    const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
+      expect(init?.body).toBeInstanceOf(FormData);
+      return new Response(
+        JSON.stringify({
+          session_id: "session-3",
+          question_index: 1,
+          text: "转写成功",
+          duration: 1.2,
+          is_final: true,
+        }),
+        {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        },
+      );
+    });
+
+    vi.stubGlobal("window", {} as Window & typeof globalThis);
+    vi.stubGlobal("document", {} as Document);
+    vi.stubGlobal("fetch", fetchMock);
+
+    const payload = new FormData();
+    payload.append("session_id", "session-3");
+    payload.append("question_index", "1");
+    payload.append("file", new Blob(["audio-bytes"], { type: "audio/webm" }), "voice.webm");
+
+    const result = await transcribeVoiceCancelable(payload).promise;
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(result.text).toBe("转写成功");
+  });
 });
