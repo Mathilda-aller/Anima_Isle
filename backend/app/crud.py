@@ -210,6 +210,21 @@ def create_chat_session(db: Session, user_id: int):
 def get_chat_session(db: Session, session_id: str):
     return db.query(models.ChatSession).filter(models.ChatSession.session_id == session_id).first()
 
+def save_chat_answer(db: Session, session_id: str, answer: str, turn_index: int):
+    db_session = get_chat_session(db, session_id)
+    if not db_session:
+        return None
+
+    db_session.updated_at = datetime.now()
+    if turn_index == 1:
+        db_session.turn_1_answer = answer
+    elif turn_index == 2:
+        db_session.turn_2_answer = answer
+
+    db.commit()
+    db.refresh(db_session)
+    return db_session
+
 def update_chat_step(db: Session, session_id: str, step: int, answer: str = None, turn_index: int = 0):
     db_session = get_chat_session(db, session_id)
     if not db_session:

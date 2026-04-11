@@ -1,3 +1,4 @@
+import asyncio
 import logging
 
 import pytest
@@ -6,11 +7,12 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from app import crud, deps, models
+from app import crud, deps, models, schemas
 from app.database import Base
 from app.main import app
 import app.main as app_main
 from app.utils import ai_engine, risk_engine, search_engine, security
+from app.routers import chat as chat_router
 
 
 class _RiskResult:
@@ -290,3 +292,332 @@ def test_chat_reply_stream_can_finish_after_frontend_timeout_budget(client, db_s
     assert response.status_code == 200
     assert 'event: done' in body
     assert '"elapsed_ms":' in body
+
+
+def test_chat_reply_cancels_sibling_task_when_route_fails(client, db_session, monkeypatch):
+    cancelled = {"value": False}
+
+    async def _risk(*args, **kwargs):
+        return _safe_result()
+
+    async def _empathy(*args, **kwargs):
+        return "我在听你说。"
+
+    async def _route(*args, **kwargs):
+        raise RuntimeError("route failed")
+
+    async def _embedding(*args, **kwargs):
+        try:
+            await asyncio.sleep(1)
+            return [0.1] * 1024
+        except asyncio.CancelledError:
+            cancelled["value"] = True
+            raise
+
+    monkeypatch.setattr(risk_engine, "check_text_risk", _risk)
+    monkeypatch.setattr(ai_engine, "generate_empathy_text", _empathy)
+    monkeypatch.setattr(ai_engine, "classify_emotion_route", _route)
+    monkeypatch.setattr(ai_engine, "get_embedding", _embedding)
+
+    token = _register_and_get_token(db_session)
+    headers = {"Authorization": f"Bearer {token}"}
+    session_id = client.post("/chat/start", headers=headers).json()["session_id"]
+
+    client.post("/chat/reply", json={"session_id": session_id, "content": "第一轮"}, headers=headers)
+    step2 = client.post("/chat/reply", json={"session_id": session_id, "content": "第二轮"}, headers=headers)
+
+    assert step2.status_code == 500
+    assert cancelled["value"] is True
+
+
+def test_chat_reply_generation_failure_keeps_session_retryable(client, db_session, monkeypatch):
+    attempts = {"count": 0}
+
+    async def _risk(*args, **kwargs):
+        return _safe_result()
+
+    async def _empathy(*args, **kwargs):
+        return "我在听你说。"
+
+    async def _route(*args, **kwargs):
+        return {"Island": "RAIN", "Intensity": "LOW"}
+
+    async def _embedding(*args, **kwargs):
+        return [0.1] * 1024
+
+    async def _poem(*args, **kwargs):
+        attempts["count"] += 1
+        if attempts["count"] == 1:
+            raise RuntimeError("poem failed")
+        return "第一行\n第二行\n第三行"
+
+    def _search(*args, **kwargs):
+        return [_candidate("img-1", 0), _candidate("img-2", 1), _candidate("img-3", 2)]
+
+    monkeypatch.setattr(risk_engine, "check_text_risk", _risk)
+    monkeypatch.setattr(ai_engine, "generate_empathy_text", _empathy)
+    monkeypatch.setattr(ai_engine, "classify_emotion_route", _route)
+    monkeypatch.setattr(ai_engine, "get_embedding", _embedding)
+    monkeypatch.setattr(ai_engine, "generate_three_line_poem", _poem)
+    monkeypatch.setattr(search_engine, "search_island_candidates", _search)
+
+    token = _register_and_get_token(db_session)
+    headers = {"Authorization": f"Bearer {token}"}
+    session_id = client.post("/chat/start", headers=headers).json()["session_id"]
+
+    client.post("/chat/reply", json={"session_id": session_id, "content": "第一轮"}, headers=headers)
+    failed = client.post("/chat/reply", json={"session_id": session_id, "content": "第二轮"}, headers=headers)
+
+    assert failed.status_code == 500
+    assert crud.get_chat_session(db_session, session_id).current_step == 1
+
+    retried = client.post("/chat/reply", json={"session_id": session_id, "content": "第二轮重试"}, headers=headers)
+
+    assert retried.status_code == 200
+    assert retried.json()["state"] == "finished"
+    assert crud.get_chat_session(db_session, session_id).current_step == 3
+
+
+def test_chat_reply_risk_blocked_advances_session_and_skips_generation(client, db_session, monkeypatch):
+    calls = {"route": 0, "embedding": 0}
+
+    async def _risk(*args, **kwargs):
+        return _danger_result()
+
+    async def _route(*args, **kwargs):
+        calls["route"] += 1
+        return {"Island": "RAIN", "Intensity": "LOW"}
+
+    async def _embedding(*args, **kwargs):
+        calls["embedding"] += 1
+        return [0.1] * 1024
+
+    monkeypatch.setattr(risk_engine, "check_text_risk", _risk)
+    monkeypatch.setattr(ai_engine, "classify_emotion_route", _route)
+    monkeypatch.setattr(ai_engine, "get_embedding", _embedding)
+
+    token = _register_and_get_token(db_session)
+    headers = {"Authorization": f"Bearer {token}"}
+    session_id = client.post("/chat/start", headers=headers).json()["session_id"]
+
+    client.post("/chat/reply", json={"session_id": session_id, "content": "第一轮"}, headers=headers)
+    blocked = client.post("/chat/reply", json={"session_id": session_id, "content": "第二轮"}, headers=headers)
+
+    assert blocked.status_code == 200
+    assert blocked.json()["state"] == "risk_blocked"
+    assert crud.get_chat_session(db_session, session_id).current_step == 2
+    assert calls == {"route": 0, "embedding": 0}
+
+
+@pytest.mark.anyio
+async def test_chat_reply_stream_disconnect_after_risk_keeps_session_retryable(db_session, monkeypatch):
+    state = {"disconnect": False}
+
+    async def _risk(*args, **kwargs):
+        state["disconnect"] = True
+        return _safe_result()
+
+    async def _stream(*args, **kwargs):
+        yield "我在听你说。"
+
+    async def _route(*args, **kwargs):
+        return {"Island": "RAIN", "Intensity": "LOW"}
+
+    async def _embedding(*args, **kwargs):
+        return [0.1] * 1024
+
+    async def _poem(*args, **kwargs):
+        return "第一行\n第二行\n第三行"
+
+    def _search(*args, **kwargs):
+        return [_candidate("img-1", 0), _candidate("img-2", 1), _candidate("img-3", 2)]
+
+    monkeypatch.setattr(risk_engine, "check_text_risk", _risk)
+    monkeypatch.setattr(ai_engine, "stream_empathy_text", _stream)
+    monkeypatch.setattr(ai_engine, "classify_emotion_route", _route)
+    monkeypatch.setattr(ai_engine, "get_embedding", _embedding)
+    monkeypatch.setattr(ai_engine, "generate_three_line_poem", _poem)
+    monkeypatch.setattr(search_engine, "search_island_candidates", _search)
+
+    user = crud.create_email_user(db_session, email="disconnect_after_risk@example.com", password="abc12345")
+    session = crud.create_chat_session(db_session, user_id=user.id)
+    crud.update_chat_step(db_session, session.session_id, step=1, answer="第一轮", turn_index=1)
+    current_user = crud.get_user_by_id(db_session, user.id)
+    reply_req = schemas.ChatReplyRequest(session_id=session.session_id, content="第二轮")
+    trace_id = "trace_disconnect_risk"
+    breakdown = {}
+
+    session, full_context = await chat_router._save_q2_and_build_context(
+        db=db_session,
+        session=session,
+        reply_req=reply_req,
+        trace_id=trace_id,
+        user_id=user.id,
+        breakdown=breakdown,
+    )
+
+    async def _is_disconnected():
+        return state["disconnect"]
+
+    chunks = []
+    async for chunk in chat_router._stream_final_reply_events(
+        db=db_session,
+        session=session,
+        current_user=current_user,
+        full_context=full_context,
+        trace_id=trace_id,
+        breakdown=breakdown,
+        request_started=0.0,
+        is_disconnected=_is_disconnected,
+    ):
+        chunks.append(chunk)
+
+    assert any("event: ack" in chunk for chunk in chunks)
+    assert not any("event: asset_ready" in chunk for chunk in chunks)
+    assert crud.get_chat_session(db_session, session.session_id).current_step == 1
+    assert db_session.query(models.Ticket).count() == 0
+    assert db_session.query(models.AIChatLog).count() == 0
+
+
+@pytest.mark.anyio
+async def test_chat_reply_stream_disconnect_during_empathy_cancels_asset_work(db_session, monkeypatch):
+    cancelled = {"embedding": False}
+    yielded = {"count": 0}
+    started = asyncio.Event()
+
+    async def _risk(*args, **kwargs):
+        return _safe_result()
+
+    async def _stream(*args, **kwargs):
+        await started.wait()
+        yield "我在"
+        yielded["count"] += 1
+        yield "听你说。"
+
+    async def _route(*args, **kwargs):
+        return {"Island": "RAIN", "Intensity": "LOW"}
+
+    async def _embedding(*args, **kwargs):
+        try:
+            started.set()
+            await asyncio.sleep(1)
+            return [0.1] * 1024
+        except asyncio.CancelledError:
+            cancelled["embedding"] = True
+            raise
+
+    async def _poem(*args, **kwargs):
+        return "第一行\n第二行\n第三行"
+
+    def _search(*args, **kwargs):
+        return [_candidate("img-1", 0), _candidate("img-2", 1), _candidate("img-3", 2)]
+
+    monkeypatch.setattr(risk_engine, "check_text_risk", _risk)
+    monkeypatch.setattr(ai_engine, "stream_empathy_text", _stream)
+    monkeypatch.setattr(ai_engine, "classify_emotion_route", _route)
+    monkeypatch.setattr(ai_engine, "get_embedding", _embedding)
+    monkeypatch.setattr(ai_engine, "generate_three_line_poem", _poem)
+    monkeypatch.setattr(search_engine, "search_island_candidates", _search)
+
+    user = crud.create_email_user(db_session, email="disconnect_during_empathy@example.com", password="abc12345")
+    session = crud.create_chat_session(db_session, user_id=user.id)
+    crud.update_chat_step(db_session, session.session_id, step=1, answer="第一轮", turn_index=1)
+    current_user = crud.get_user_by_id(db_session, user.id)
+    reply_req = schemas.ChatReplyRequest(session_id=session.session_id, content="第二轮")
+
+    session, full_context = await chat_router._save_q2_and_build_context(
+        db=db_session,
+        session=session,
+        reply_req=reply_req,
+        trace_id="trace_disconnect_empathy",
+        user_id=user.id,
+        breakdown={},
+    )
+
+    async def _is_disconnected():
+        return yielded["count"] > 0
+
+    chunks = []
+    async for chunk in chat_router._stream_final_reply_events(
+        db=db_session,
+        session=session,
+        current_user=current_user,
+        full_context=full_context,
+        trace_id="trace_disconnect_empathy",
+        breakdown={},
+        request_started=0.0,
+        is_disconnected=_is_disconnected,
+    ):
+        chunks.append(chunk)
+
+    assert any("event: empathy_delta" in chunk for chunk in chunks)
+    assert cancelled["embedding"] is True
+    assert crud.get_chat_session(db_session, session.session_id).current_step == 1
+    assert db_session.query(models.Ticket).count() == 0
+
+
+@pytest.mark.anyio
+async def test_chat_reply_stream_disconnect_before_ticket_create_skips_persist(db_session, monkeypatch):
+    state = {"disconnect": False}
+
+    async def _risk(*args, **kwargs):
+        return _safe_result()
+
+    async def _stream(*args, **kwargs):
+        yield "我在听你说。"
+
+    async def _route(*args, **kwargs):
+        return {"Island": "RAIN", "Intensity": "LOW"}
+
+    async def _embedding(*args, **kwargs):
+        return [0.1] * 1024
+
+    async def _poem(*args, **kwargs):
+        state["disconnect"] = True
+        return "第一行\n第二行\n第三行"
+
+    def _search(*args, **kwargs):
+        return [_candidate("img-1", 0), _candidate("img-2", 1), _candidate("img-3", 2)]
+
+    monkeypatch.setattr(risk_engine, "check_text_risk", _risk)
+    monkeypatch.setattr(ai_engine, "stream_empathy_text", _stream)
+    monkeypatch.setattr(ai_engine, "classify_emotion_route", _route)
+    monkeypatch.setattr(ai_engine, "get_embedding", _embedding)
+    monkeypatch.setattr(ai_engine, "generate_three_line_poem", _poem)
+    monkeypatch.setattr(search_engine, "search_island_candidates", _search)
+
+    user = crud.create_email_user(db_session, email="disconnect_before_ticket@example.com", password="abc12345")
+    session = crud.create_chat_session(db_session, user_id=user.id)
+    crud.update_chat_step(db_session, session.session_id, step=1, answer="第一轮", turn_index=1)
+    current_user = crud.get_user_by_id(db_session, user.id)
+    reply_req = schemas.ChatReplyRequest(session_id=session.session_id, content="第二轮")
+
+    session, full_context = await chat_router._save_q2_and_build_context(
+        db=db_session,
+        session=session,
+        reply_req=reply_req,
+        trace_id="trace_disconnect_before_ticket",
+        user_id=user.id,
+        breakdown={},
+    )
+
+    async def _is_disconnected():
+        return state["disconnect"]
+
+    chunks = []
+    async for chunk in chat_router._stream_final_reply_events(
+        db=db_session,
+        session=session,
+        current_user=current_user,
+        full_context=full_context,
+        trace_id="trace_disconnect_before_ticket",
+        breakdown={},
+        request_started=0.0,
+        is_disconnected=_is_disconnected,
+    ):
+        chunks.append(chunk)
+
+    assert any("event: empathy_done" in chunk for chunk in chunks)
+    assert not any("event: asset_ready" in chunk for chunk in chunks)
+    assert crud.get_chat_session(db_session, session.session_id).current_step == 1
+    assert db_session.query(models.Ticket).count() == 0
