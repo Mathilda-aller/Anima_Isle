@@ -1,16 +1,19 @@
 <script setup lang="ts">
-import { computed, nextTick, ref } from "vue";
+import { computed, nextTick, onBeforeUnmount, ref } from "vue";
 import { onLoad, onShow } from "@dcloudio/uni-app";
 import ChatCabinScene from "@/modules/chat/components/ChatCabinScene.vue";
 import CabinTextInputBlock from "@/modules/chat/components/CabinTextInputBlock.vue";
 import { useAuthStore } from "@/modules/auth/store/auth";
 import { useChatStore } from "@/modules/chat/store/chat";
+import { createAsyncFlowGuard } from "@/modules/chat/utils/asyncFlowGuard";
+import { isRequestAbortedError } from "@/infrastructure/http/request";
 import { ROUTES } from "@/shared/constants/routes";
 import { ApiError } from "@/shared/types/http";
 import { toChatHome, toLogin } from "@/shared/utils/navigation";
 
 const authStore = useAuthStore();
 const chatStore = useChatStore();
+const cabinAsyncGuard = createAsyncFlowGuard();
 
 const inputValue = ref("");
 const errorMsg = ref("");
@@ -127,9 +130,15 @@ onShow(async () => {
   }
 });
 
+onBeforeUnmount(() => {
+  cabinAsyncGuard.invalidate();
+  chatStore.cancelActiveChatWork(["q1_submit"]);
+});
+
 async function submitAnswer() {
   const content = inputValue.value.trim();
   if (!content || chatStore.loading) return;
+  const actionToken = cabinAsyncGuard.begin();
 
   errorMsg.value = "";
   try {
@@ -145,6 +154,10 @@ async function submitAnswer() {
     if (isFirstAnswer) {
       const previewStart = Date.now();
       await chatStore.submitAnswer(content);
+
+      if (!cabinAsyncGuard.isCurrent(actionToken)) {
+        return;
+      }
 
       if (chatStore.generationState === "risk_blocked") {
         uni.navigateTo({ url: ROUTES.AID });
@@ -164,19 +177,28 @@ async function submitAnswer() {
       currentQuestionIndex.value = 2;
       secondPromptText.value = chatStore.q2 || "";
       await nextTick();
+      if (!cabinAsyncGuard.isCurrent(actionToken)) {
+        return;
+      }
       sceneTransitioning.value = false;
       return;
     }
 
     chatStore.queueFinalAnswer(content);
     inputValue.value = "";
+    cabinAsyncGuard.invalidate();
     uni.redirectTo({ url: ROUTES.CHAT_GENERATING });
   } catch (error) {
+    if (!cabinAsyncGuard.isCurrent(actionToken) || isRequestAbortedError(error)) {
+      return;
+    }
     errorMsg.value = normalizeError(error);
   }
 }
 
 function goBack() {
+  cabinAsyncGuard.invalidate();
+  chatStore.cancelActiveChatWork(["q1_submit"]);
   const pages = getCurrentPages();
   if (pages.length > 1) {
     uni.navigateBack();
@@ -199,6 +221,8 @@ function onInputValue(value: string) {
 }
 
 function openVoiceInput() {
+  cabinAsyncGuard.invalidate();
+  chatStore.cancelActiveChatWork(["q1_submit"]);
   uni.navigateTo({ url: ROUTES.CHAT_VOICE });
 }
 </script>

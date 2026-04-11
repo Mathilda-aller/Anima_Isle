@@ -1,8 +1,29 @@
 import { defineStore } from "pinia";
-import { startChat, replyChat, confirmTicket, replyChatStream } from "@/modules/chat/api/chat";
+import { startChat, replyChat, replyChatCancelable, confirmTicket, replyChatStreamCancelable } from "@/modules/chat/api/chat";
+import { isRequestAbortedError } from "@/infrastructure/http/request";
 import type { ChatSessionState, ChatStepResponse, ChatStreamEvent } from "@/modules/chat/types/chat";
 import { clearChatDraft, setChatDraft } from "@/infrastructure/storage/chat";
 import { logEvent } from "@/infrastructure/http/tracking";
+
+type ChatRequestKind = "q1_submit" | "voice_transcribe" | "final_stream";
+
+interface ActiveRequestEntry {
+  token: number;
+  sessionId: string;
+  cancel: (() => void) | null;
+}
+
+const requestCounters: Record<ChatRequestKind, number> = {
+  q1_submit: 0,
+  voice_transcribe: 0,
+  final_stream: 0,
+};
+
+const activeRequests: Record<ChatRequestKind, ActiveRequestEntry> = {
+  q1_submit: { token: 0, sessionId: "", cancel: null },
+  voice_transcribe: { token: 0, sessionId: "", cancel: null },
+  final_stream: { token: 0, sessionId: "", cancel: null },
+};
 
 function applyReplyState(store: ChatSessionState, result: ChatStepResponse): void {
   store.replyText = result.reply_text;
@@ -44,7 +65,66 @@ export const useChatStore = defineStore("chat", {
     streamError: "",
   }),
   actions: {
+    beginTrackedRequest(kind: ChatRequestKind, sessionId: string, cancel?: () => void) {
+      const previousCancel = activeRequests[kind].cancel;
+      if (previousCancel) {
+        previousCancel();
+      }
+
+      requestCounters[kind] += 1;
+      const token = requestCounters[kind];
+      activeRequests[kind] = {
+        token,
+        sessionId,
+        cancel: cancel ?? null,
+      };
+      return { token, sessionId };
+    },
+
+    attachTrackedRequestCancel(kind: ChatRequestKind, token: number, sessionId: string, cancel: () => void) {
+      if (!this.isTrackedRequestCurrent(kind, token, sessionId)) {
+        cancel();
+        return;
+      }
+
+      const previousCancel = activeRequests[kind].cancel;
+      if (previousCancel && previousCancel !== cancel) {
+        previousCancel();
+      }
+      activeRequests[kind].cancel = cancel;
+    },
+
+    isTrackedRequestCurrent(kind: ChatRequestKind, token: number, sessionId: string) {
+      const current = activeRequests[kind];
+      return current.token === token && current.sessionId === sessionId;
+    },
+
+    finishTrackedRequest(kind: ChatRequestKind, token: number, sessionId: string) {
+      if (!this.isTrackedRequestCurrent(kind, token, sessionId)) {
+        return false;
+      }
+
+      activeRequests[kind].cancel = null;
+      activeRequests[kind].sessionId = "";
+      return true;
+    },
+
+    cancelActiveChatWork(kinds: ChatRequestKind[] = ["q1_submit", "voice_transcribe", "final_stream"]) {
+      kinds.forEach((kind) => {
+        const cancel = activeRequests[kind].cancel;
+        requestCounters[kind] += 1;
+        activeRequests[kind] = {
+          token: requestCounters[kind],
+          sessionId: "",
+          cancel: null,
+        };
+        cancel?.();
+      });
+      this.loading = false;
+    },
+
     resetSession() {
+      this.cancelActiveChatWork();
       this.sessionId = "";
       this.step = 0;
       this.q1 = "";
@@ -86,6 +166,8 @@ export const useChatStore = defineStore("chat", {
     ) {
       const clean = content.trim();
       if (!clean || !this.sessionId) return;
+      const sessionId = this.sessionId;
+      const requestMeta = this.beginTrackedRequest("q1_submit", sessionId);
 
       this.loading = true;
       try {
@@ -97,12 +179,18 @@ export const useChatStore = defineStore("chat", {
           return;
         }
 
-        const result = await replyChat({
+        const operation = replyChatCancelable({
           session_id: this.sessionId,
           content: clean,
           is_voice: options.isVoice ?? false,
           duration: options.duration ?? 0,
         });
+        this.attachTrackedRequestCancel("q1_submit", requestMeta.token, sessionId, operation.cancel);
+        const result = await operation.promise;
+
+        if (!this.isTrackedRequestCurrent("q1_submit", requestMeta.token, sessionId)) {
+          return;
+        }
 
         applyReplyState(this.$state, result);
 
@@ -118,8 +206,15 @@ export const useChatStore = defineStore("chat", {
           step: this.step,
           state: result.state,
         });
+      } catch (error) {
+        if (isRequestAbortedError(error) || !this.isTrackedRequestCurrent("q1_submit", requestMeta.token, sessionId)) {
+          return;
+        }
+        throw error;
       } finally {
-        this.loading = false;
+        if (this.finishTrackedRequest("q1_submit", requestMeta.token, sessionId)) {
+          this.loading = false;
+        }
       }
     },
 
@@ -218,9 +313,11 @@ export const useChatStore = defineStore("chat", {
     async streamPendingFinalAnswer() {
       if (!this.pendingFinalAnswer || !this.sessionId) return;
 
+      const sessionId = this.sessionId;
       const content = this.pendingFinalAnswer;
       const isVoice = this.pendingFinalAnswerIsVoice;
       const duration = this.pendingFinalAnswerDuration;
+      const requestMeta = this.beginTrackedRequest("final_stream", sessionId);
 
       this.pendingFinalAnswer = "";
       this.pendingFinalAnswerIsVoice = false;
@@ -232,7 +329,7 @@ export const useChatStore = defineStore("chat", {
       this.generationState = "processing";
 
       try {
-        await replyChatStream(
+        const operation = replyChatStreamCancelable(
           {
             session_id: this.sessionId,
             content,
@@ -241,17 +338,33 @@ export const useChatStore = defineStore("chat", {
           },
           {
             onEvent: (event) => {
+              if (!this.isTrackedRequestCurrent("final_stream", requestMeta.token, sessionId)) {
+                return;
+              }
               this.applyStreamEvent(event);
             },
           },
         );
+        this.attachTrackedRequestCancel("final_stream", requestMeta.token, sessionId, operation.cancel);
+        await operation.promise;
+
+        if (!this.isTrackedRequestCurrent("final_stream", requestMeta.token, sessionId)) {
+          return;
+        }
 
         await logEvent("chat_reply_streamed", {
           session_id: this.sessionId,
           state: this.generationState,
         });
+      } catch (error) {
+        if (isRequestAbortedError(error) || !this.isTrackedRequestCurrent("final_stream", requestMeta.token, sessionId)) {
+          return;
+        }
+        throw error;
       } finally {
-        this.loading = false;
+        if (this.finishTrackedRequest("final_stream", requestMeta.token, sessionId)) {
+          this.loading = false;
+        }
       }
     },
 

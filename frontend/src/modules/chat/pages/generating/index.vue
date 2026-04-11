@@ -6,6 +6,7 @@ import { useChatStore } from "@/modules/chat/store/chat";
 import { CHAT_ASSETS } from "@/modules/chat/assets";
 import ChatCabinScene from "@/modules/chat/components/ChatCabinScene.vue";
 import ChatTicketRevealCard from "@/modules/chat/components/ChatTicketRevealCard.vue";
+import { createAsyncFlowGuard } from "@/modules/chat/utils/asyncFlowGuard";
 import StageViewportShell from "@/shared/components/StageViewportShell.vue";
 import { ROUTES } from "@/shared/constants/routes";
 import { ApiError } from "@/shared/types/http";
@@ -23,6 +24,7 @@ const displayedResponseText = ref("");
 const revealQueue = ref("");
 const transitionTitleText = "海潮为你梳理着思绪……";
 const transitionBodyText = "现在，它们正在被拓印成画，轻吟成诗……";
+const generationFlowGuard = createAsyncFlowGuard();
 let revealTimer: ReturnType<typeof setTimeout> | null = null;
 
 const isFinished = computed(() => chatStore.generationState === "finished" && !!chatStore.ticketDraft);
@@ -63,6 +65,8 @@ function normalizeError(error: unknown): string {
 }
 
 function goHome() {
+  generationFlowGuard.invalidate();
+  chatStore.resetSession();
   toChatHome();
 }
 
@@ -118,14 +122,25 @@ function resetRevealText() {
   revealQueue.value = "";
 }
 
+function scheduleRevealStage(token: number) {
+  generationFlowGuard.schedule(token, () => {
+    finishedStage.value = "reveal";
+  }, 1400);
+}
+
 async function beginGeneratingIfNeeded() {
   if (generatingStarted.value || !chatStore.pendingFinalAnswer) return;
 
+  const flowToken = generationFlowGuard.begin();
   generatingStarted.value = true;
   errorMsg.value = "";
 
   try {
     await chatStore.streamPendingFinalAnswer();
+
+    if (!generationFlowGuard.isCurrent(flowToken)) {
+      return;
+    }
 
     if (chatStore.generationState === "risk_blocked") {
       uni.redirectTo({ url: ROUTES.AID });
@@ -133,12 +148,13 @@ async function beginGeneratingIfNeeded() {
     }
     if (chatStore.generationState === "finished") {
       finishedStage.value = "transition";
-      setTimeout(() => {
-        finishedStage.value = "reveal";
-      }, 1400);
+      scheduleRevealStage(flowToken);
       return;
     }
   } catch (error) {
+    if (!generationFlowGuard.isCurrent(flowToken)) {
+      return;
+    }
     errorMsg.value = normalizeError(error);
     generatingStarted.value = false;
   }
@@ -179,10 +195,9 @@ async function syncFlow() {
   await beginGeneratingIfNeeded();
 
   if (isFinished.value) {
+    const flowToken = generationFlowGuard.begin();
     finishedStage.value = "transition";
-    setTimeout(() => {
-      finishedStage.value = "reveal";
-    }, 1400);
+    scheduleRevealStage(flowToken);
   }
 }
 
@@ -271,6 +286,8 @@ watch(
 );
 
 onBeforeUnmount(() => {
+  generationFlowGuard.invalidate();
+  chatStore.cancelActiveChatWork(["final_stream"]);
   generatingStarted.value = false;
   finishedStage.value = "reply";
   clearRevealTimer();

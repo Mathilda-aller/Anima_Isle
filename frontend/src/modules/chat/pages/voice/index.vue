@@ -2,10 +2,12 @@
 import { computed, onBeforeUnmount, ref } from "vue";
 import { onLoad, onShow } from "@dcloudio/uni-app";
 import { useAuthStore } from "@/modules/auth/store/auth";
-import { transcribeVoice } from "@/modules/chat/api/chat";
+import { transcribeVoiceCancelable } from "@/modules/chat/api/chat";
+import { isRequestAbortedError } from "@/infrastructure/http/request";
 import { useChatStore } from "@/modules/chat/store/chat";
 import ChatCabinScene from "@/modules/chat/components/ChatCabinScene.vue";
 import CabinVoiceControlBlock from "@/modules/chat/components/CabinVoiceControlBlock.vue";
+import { createAsyncFlowGuard } from "@/modules/chat/utils/asyncFlowGuard";
 import { ROUTES } from "@/shared/constants/routes";
 import { ApiError } from "@/shared/types/http";
 import { toChatHome, toLogin } from "@/shared/utils/navigation";
@@ -46,6 +48,7 @@ interface BrowserSpeechRecognitionCtor {
 
 const authStore = useAuthStore();
 const chatStore = useChatStore();
+const voiceAsyncGuard = createAsyncFlowGuard();
 const voiceUiState = ref<"idle" | "recording" | "transcribing" | "review">("idle");
 const isRecording = ref(false);
 const elapsedSeconds = ref(0);
@@ -73,6 +76,7 @@ let analyserFrame = 0;
 let recordTimer: ReturnType<typeof setInterval> | null = null;
 let recordStartedAt = 0;
 let recordedChunks: BlobPart[] = [];
+let transcribeFailed = false;
 
 const durationText = computed(() => {
   const minutes = String(Math.floor(elapsedSeconds.value / 60)).padStart(2, "0");
@@ -122,6 +126,8 @@ onShow(async () => {
 });
 
 onBeforeUnmount(() => {
+  voiceAsyncGuard.invalidate();
+  chatStore.cancelActiveChatWork(["voice_transcribe", "q1_submit"]);
   stopRecordingTimer();
   void releaseMediaStream();
   stopAnalyserLoop();
@@ -194,11 +200,14 @@ function resetVoiceFlow() {
   transcriptPreviewText.value = "";
   reviewTranscriptText.value = "";
   recordedAudioBlob.value = null;
+  transcribeFailed = false;
   elapsedSeconds.value = 0;
   rippleIntensity.value = 0;
 }
 
 function goBack() {
+  voiceAsyncGuard.invalidate();
+  chatStore.cancelActiveChatWork(["voice_transcribe", "q1_submit"]);
   const pages = getCurrentPages();
   if (pages.length > 1) {
     uni.navigateBack();
@@ -231,6 +240,7 @@ function clearReviewState() {
   transcriptPreviewText.value = "";
   reviewTranscriptText.value = "";
   recordedAudioBlob.value = null;
+  transcribeFailed = false;
 }
 
 async function restartRecording() {
@@ -259,6 +269,7 @@ async function cancelRecording() {
 async function submitReview() {
   const submittedText = reviewTranscriptText.value.trim();
   if (!submittedText || voiceUiState.value !== "review") return;
+  const actionToken = voiceAsyncGuard.begin();
 
   errorMsg.value = "";
 
@@ -271,12 +282,16 @@ async function submitReview() {
         duration: elapsedSeconds.value,
       });
 
+      if (!voiceAsyncGuard.isCurrent(actionToken)) {
+        return;
+      }
+
       if (chatStore.generationState === "risk_blocked") {
         uni.navigateTo({ url: ROUTES.AID });
         return;
       }
 
-      await transitionToSecondQuestion();
+      await transitionToSecondQuestion(actionToken);
       return;
     }
 
@@ -285,13 +300,19 @@ async function submitReview() {
       duration: elapsedSeconds.value,
     });
     clearReviewState();
+    voiceAsyncGuard.invalidate();
     uni.redirectTo({ url: ROUTES.CHAT_GENERATING });
   } catch (error) {
+    if (!voiceAsyncGuard.isCurrent(actionToken) || isRequestAbortedError(error)) {
+      return;
+    }
     errorMsg.value = normalizeError(error);
   }
 }
 
 function openTextInput() {
+  voiceAsyncGuard.invalidate();
+  chatStore.cancelActiveChatWork(["voice_transcribe", "q1_submit"]);
   const pages = getCurrentPages();
   const previousPage = pages[pages.length - 2];
   if (previousPage?.route === ROUTES.CHAT_CABIN.replace(/^\//, "")) {
@@ -321,11 +342,12 @@ async function startRecording() {
 
   recordedAudioBlob.value = null;
   recordedChunks = [];
+  transcribeFailed = false;
   elapsedSeconds.value = 0;
   transcriptPreviewText.value = "";
   reviewTranscriptText.value = "";
 
-  mediaRecorder.start();
+  mediaRecorder.start(250);
   startSpeechRecognition();
   isRecording.value = true;
   voiceUiState.value = "recording";
@@ -345,12 +367,26 @@ async function stopRecording(discard = false) {
   if (!currentRecorder) return;
 
   const blob = await new Promise<Blob | null>((resolve) => {
-    currentRecorder.onstop = () => {
+    const finalizeBlob = () => {
+      currentRecorder.onstop = null;
       const nextBlob = discard || !recordedChunks.length
         ? null
         : new Blob(recordedChunks, { type: currentRecorder.mimeType || "audio/webm" });
       resolve(nextBlob);
     };
+
+    currentRecorder.onstop = () => {
+      // Some browsers flush the last audio chunk on stop; defer blob assembly
+      // to the next task so ondataavailable has a chance to run first.
+      setTimeout(finalizeBlob, 0);
+    };
+    if (typeof currentRecorder.requestData === "function") {
+      try {
+        currentRecorder.requestData();
+      } catch (error) {
+        console.error("media_recorder_request_data_failed", error);
+      }
+    }
     currentRecorder.stop();
   });
 
@@ -365,10 +401,16 @@ async function stopRecording(discard = false) {
 
   if (discard || !blob) return;
 
+  const transcribeToken = voiceAsyncGuard.begin();
   const submittedText = await transcribeRecordedAudio(blob);
+  if (!voiceAsyncGuard.isCurrent(transcribeToken)) {
+    return;
+  }
   if (!submittedText) {
     voiceUiState.value = "idle";
-    errorMsg.value = "没有识别到语音内容，请再试一次";
+    if (!transcribeFailed) {
+      errorMsg.value = "没有识别到语音内容，请再试一次";
+    }
     return;
   }
 
@@ -438,6 +480,9 @@ async function ensureSession() {
 
 async function transcribeRecordedAudio(blob: Blob): Promise<string> {
   await ensureSession();
+  transcribeFailed = false;
+  const sessionId = chatStore.sessionId;
+  const requestMeta = chatStore.beginTrackedRequest("voice_transcribe", sessionId);
   const formData = new FormData();
   formData.append("file", blob, `question-${currentQuestionIndex.value}.webm`);
   formData.append("session_id", chatStore.sessionId);
@@ -445,13 +490,24 @@ async function transcribeRecordedAudio(blob: Blob): Promise<string> {
   formData.append("duration", String(elapsedSeconds.value));
 
   try {
-    const result = await transcribeVoice(formData);
+    const operation = transcribeVoiceCancelable(formData);
+    chatStore.attachTrackedRequestCancel("voice_transcribe", requestMeta.token, sessionId, operation.cancel);
+    const result = await operation.promise;
+    if (!chatStore.isTrackedRequestCurrent("voice_transcribe", requestMeta.token, sessionId)) {
+      return "";
+    }
     return result.text.trim();
   } catch (error) {
+    if (isRequestAbortedError(error) || !chatStore.isTrackedRequestCurrent("voice_transcribe", requestMeta.token, sessionId)) {
+      return "";
+    }
     console.error("voice_transcribe_failed", error);
+    transcribeFailed = true;
     errorMsg.value = normalizeError(error);
     voiceUiState.value = "idle";
     return "";
+  } finally {
+    chatStore.finishTrackedRequest("voice_transcribe", requestMeta.token, sessionId);
   }
 }
 
@@ -498,10 +554,13 @@ function stopAnalyserLoop() {
   rippleIntensity.value = 0;
 }
 
-async function transitionToSecondQuestion() {
+async function transitionToSecondQuestion(actionToken: number) {
   errorMsg.value = "";
   sceneTransitioning.value = true;
   await new Promise((resolve) => setTimeout(resolve, 220));
+  if (!voiceAsyncGuard.isCurrent(actionToken)) {
+    return;
+  }
   voiceFlow.value = "second";
   voiceUiState.value = "idle";
   currentQuestionIndex.value = 2;
@@ -509,6 +568,9 @@ async function transitionToSecondQuestion() {
   elapsedSeconds.value = 0;
   clearReviewState();
   await new Promise((resolve) => setTimeout(resolve, 80));
+  if (!voiceAsyncGuard.isCurrent(actionToken)) {
+    return;
+  }
   sceneTransitioning.value = false;
 }
 

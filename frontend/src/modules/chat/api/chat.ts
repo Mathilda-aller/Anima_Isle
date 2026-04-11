@@ -1,4 +1,4 @@
-import { buildUrl, request } from "@/infrastructure/http/request";
+import { buildUrl, isRequestAbortedError, request, requestCancelable, type CancelableRequest } from "@/infrastructure/http/request";
 import { getStoredToken } from "@/infrastructure/storage/auth";
 import { ApiError } from "@/shared/types/http";
 import type {
@@ -16,6 +16,11 @@ interface TicketConfirmResponse {
   reroll_count: number;
 }
 
+export interface CancelableStreamRequest {
+  promise: Promise<void>;
+  cancel: () => void;
+}
+
 export function startChat() {
   return request<ChatStartResponse>({
     path: "/chat/start",
@@ -26,6 +31,14 @@ export function startChat() {
 
 export function replyChat(payload: ChatReplyRequest) {
   return request<ChatStepResponse, ChatReplyRequest>({
+    path: "/chat/reply",
+    method: "POST",
+    data: payload,
+  });
+}
+
+export function replyChatCancelable(payload: ChatReplyRequest): CancelableRequest<ChatStepResponse> {
+  return requestCancelable<ChatStepResponse, ChatReplyRequest>({
     path: "/chat/reply",
     method: "POST",
     data: payload,
@@ -110,16 +123,25 @@ function toArrayBuffer(data: unknown): ArrayBuffer | null {
   return null;
 }
 
-async function replyChatStreamViaFetch(payload: ChatReplyRequest, options: ReplyChatStreamOptions) {
+async function replyChatStreamViaFetch(payload: ChatReplyRequest, options: ReplyChatStreamOptions, signal?: AbortSignal) {
   const token = getStoredToken();
-  const response = await fetch(buildUrl("/chat/reply/stream"), {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: JSON.stringify(payload),
-  });
+  let response: Response;
+  try {
+    response = await fetch(buildUrl("/chat/reply/stream"), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(payload),
+      signal,
+    });
+  } catch (error) {
+    if ((error as Error | undefined)?.name === "AbortError") {
+      throw new ApiError({ statusCode: 0, detail: "request_aborted" });
+    }
+    throw error;
+  }
 
   if (!response.ok) {
     let detail: string | Record<string, unknown> = "request_failed";
@@ -153,10 +175,15 @@ async function replyChatStreamViaFetch(payload: ChatReplyRequest, options: Reply
   }
 }
 
-async function replyChatStreamViaUniRequest(payload: ChatReplyRequest, options: ReplyChatStreamOptions) {
+async function replyChatStreamViaUniRequest(
+  payload: ChatReplyRequest,
+  options: ReplyChatStreamOptions,
+  onTaskCreated?: (task: { abort?: () => void }) => void,
+) {
   const token = getStoredToken();
   const decoder = createChunkDecoder();
   let buffer = "";
+  let cancelled = false;
 
   await new Promise<void>((resolve, reject) => {
     const requestTask = uni.request({
@@ -188,10 +215,12 @@ async function replyChatStreamViaUniRequest(payload: ChatReplyRequest, options: 
       },
       fail: (err) => {
         reject(
-          new ApiError({
-            statusCode: 0,
-            detail: err.errMsg || "network_error",
-          }),
+          cancelled
+            ? new ApiError({ statusCode: 0, detail: "request_aborted" })
+            : new ApiError({
+                statusCode: 0,
+                detail: err.errMsg || "network_error",
+              }),
         );
       },
     });
@@ -211,6 +240,13 @@ async function replyChatStreamViaUniRequest(payload: ChatReplyRequest, options: 
       if (!chunk) return;
       buffer += decoder.decode(chunk, true);
       buffer = parseSseChunk(buffer, options.onEvent) || "";
+    });
+
+    onTaskCreated?.({
+      abort: () => {
+        cancelled = true;
+        requestTask.abort();
+      },
     });
   });
 }
@@ -273,43 +309,77 @@ function shouldFallbackToSyncCompat(): boolean {
 }
 
 export async function replyChatStream(payload: ChatReplyRequest, options: ReplyChatStreamOptions) {
-  try {
-    // #ifdef H5
-    const supportsStreaming =
-      typeof fetch === "function" &&
-      typeof TextDecoder !== "undefined" &&
-      typeof ReadableStream !== "undefined";
+  return replyChatStreamCancelable(payload, options).promise;
+}
 
-    if (!supportsStreaming) {
-      throw new ApiError({ statusCode: 0, detail: "stream_not_supported_on_h5" });
-    }
+export function replyChatStreamCancelable(payload: ChatReplyRequest, options: ReplyChatStreamOptions): CancelableStreamRequest {
+  const fetchController = typeof AbortController !== "undefined" ? new AbortController() : null;
+  let cancel = () => {
+    fetchController?.abort();
+  };
 
-    await replyChatStreamViaFetch(payload, options);
-    return;
-    // #endif
+  const promise = (async () => {
+    try {
+      // #ifdef H5
+      const supportsStreaming =
+        typeof fetch === "function" &&
+        typeof TextDecoder !== "undefined" &&
+        typeof ReadableStream !== "undefined";
 
-    // #ifdef MP-WEIXIN
-    await replyChatStreamViaUniRequest(payload, options);
-    return;
-    // #endif
+      if (!supportsStreaming) {
+        throw new ApiError({ statusCode: 0, detail: "stream_not_supported_on_h5" });
+      }
 
-    await replyChatStreamFallback(payload, options);
-  } catch (error) {
-    if (
-      error instanceof ApiError &&
-      typeof error.detail === "string" &&
-      error.detail === "stream_not_supported" &&
-      shouldFallbackToSyncCompat()
-    ) {
-      await replyChatStreamFallback(payload, options);
+      await replyChatStreamViaFetch(payload, options, fetchController?.signal);
       return;
+      // #endif
+
+      // #ifdef MP-WEIXIN
+      await replyChatStreamViaUniRequest(payload, options, (task) => {
+        cancel = () => {
+          task.abort?.();
+        };
+      });
+      return;
+      // #endif
+
+      await replyChatStreamFallback(payload, options);
+    } catch (error) {
+      if (isRequestAbortedError(error)) {
+        throw error;
+      }
+
+      if (
+        error instanceof ApiError &&
+        typeof error.detail === "string" &&
+        error.detail === "stream_not_supported" &&
+        shouldFallbackToSyncCompat()
+      ) {
+        await replyChatStreamFallback(payload, options);
+        return;
+      }
+      throw error;
     }
-    throw error;
-  }
+  })();
+
+  return {
+    promise,
+    cancel: () => {
+      cancel();
+    },
+  };
 }
 
 export function transcribeVoice(payload: FormData) {
   return request<ChatVoiceTranscribeResponse, FormData>({
+    path: "/chat/transcribe",
+    method: "POST",
+    data: payload,
+  });
+}
+
+export function transcribeVoiceCancelable(payload: FormData): CancelableRequest<ChatVoiceTranscribeResponse> {
+  return requestCancelable<ChatVoiceTranscribeResponse, FormData>({
     path: "/chat/transcribe",
     method: "POST",
     data: payload,
@@ -323,3 +393,8 @@ export function confirmTicket(payload: TicketConfirmRequest) {
     data: payload,
   });
 }
+
+export const CHAT_API_INTERNALS = {
+  replyChatStreamViaFetch,
+  replyChatStreamViaUniRequest,
+};
