@@ -15,6 +15,7 @@ const props = withDefaults(
     centerTop?: string;
     centerVariant?: "default" | "transcript";
     interactionTop?: string;
+    interactionBottom?: string;
     interactionLeft?: string;
     interactionWidth?: string;
     showInteraction?: boolean;
@@ -30,6 +31,7 @@ const props = withDefaults(
     centerTop: "43.25%",
     centerVariant: "default",
     interactionTop: "57.21%",
+    interactionBottom: "",
     interactionLeft: "13.18%",
     interactionWidth: "78.36%",
     showInteraction: true,
@@ -43,6 +45,12 @@ const emit = defineEmits<{
 
 const promptLines = computed(() => props.promptText.split("\n").filter(Boolean));
 const centerLines = computed(() => props.centerText.split("\n").filter(Boolean));
+const interactionStyle = computed(() => ({
+  top: props.interactionBottom ? undefined : props.interactionTop,
+  bottom: props.interactionBottom || undefined,
+  left: props.interactionLeft,
+  width: props.interactionWidth,
+}));
 </script>
 
 <template>
@@ -95,7 +103,7 @@ const centerLines = computed(() => props.centerText.split("\n").filter(Boolean))
           v-if="showInteraction"
           class="chat-cabin-scene__interaction"
           :class="{ 'chat-cabin-scene__fade': transitioning }"
-          :style="{ top: interactionTop, left: interactionLeft, width: interactionWidth }"
+          :style="interactionStyle"
         >
           <slot name="interaction" />
         </view>

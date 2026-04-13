@@ -37,6 +37,7 @@ withDefaults(
   top: -1.26%;
   width: 123.88%;
   height: 101.26%;
-  filter: saturate(0.9) brightness(0.82);
+  filter: saturate(1.0) brightness(0.95);
+  mix-blend-mode: overlay;
 }
 </style>

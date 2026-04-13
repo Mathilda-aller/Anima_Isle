@@ -7,6 +7,7 @@ import { ISLAND_CONFIGS, ISLAND_IDS, SCENE_LAYERS, type IslandId } from "@/modul
 import { ROUTES } from "@/shared/constants/routes";
 import { SHARED_ASSETS } from "@/shared/assets";
 import { toLogin } from "@/shared/utils/navigation";
+import DarkBackgroundLayer from "@/shared/components/DarkBackgroundLayer.vue";
 
 const authStore = useAuthStore();
 const selectedIslandId = ref<IslandId | null>(null);
@@ -72,6 +73,7 @@ function selectIsland(islandId: IslandId) {
 
 <template>
   <view class="square-map-page">
+    <DarkBackgroundLayer :texture-opacity="0.55" />
     <view class="square-map-page__inner">
       <view class="square-map-page__topbar">
         <view class="square-map-page__back" hover-class="tap-hover" @click="goBack">
@@ -83,19 +85,6 @@ function selectIsland(islandId: IslandId) {
       <view class="square-map-page__scene">
         <view class="square-map-page__artboard">
           <image
-            v-for="layer in selectionOutlineLayers"
-            :key="`outline-${layer.key}`"
-            class="square-map-page__layer square-map-page__layer--outline"
-            :src="layer.src"
-            :style="{ ...layer.style, ...selectedOutlineStyle }"
-            mode="scaleToFill"
-          />
-
-          <view v-if="selectedIslandId === 'current'" class="square-map-page__ribbon-shell square-map-page__ribbon-shell--outline">
-            <image class="square-map-page__ribbon-glow square-map-page__ribbon-glow--outline" :style="selectedOutlineStyle" :src="SQUARE_ASSETS.icons.ribbonGlow" mode="scaleToFill" />
-          </view>
-
-          <image
             v-for="layer in sceneLayers"
             :key="layer.key"
             class="square-map-page__layer"
@@ -106,6 +95,19 @@ function selectIsland(islandId: IslandId) {
 
           <view class="square-map-page__ribbon-shell">
             <image class="square-map-page__ribbon-glow" :src="SQUARE_ASSETS.icons.ribbonGlow" mode="scaleToFill" />
+          </view>
+
+          <image
+            v-for="layer in selectionOutlineLayers"
+            :key="`outline-${layer.key}`"
+            class="square-map-page__layer square-map-page__layer--outline"
+            :src="layer.src"
+            :style="{ ...layer.style, ...selectedOutlineStyle }"
+            mode="scaleToFill"
+          />
+
+          <view v-if="selectedIslandId === 'current'" class="square-map-page__ribbon-shell square-map-page__ribbon-shell--outline">
+            <image class="square-map-page__ribbon-glow square-map-page__ribbon-glow--outline" :style="selectedOutlineStyle" :src="SQUARE_ASSETS.icons.ribbonGlow" mode="scaleToFill" />
           </view>
 
           <view
@@ -172,6 +174,7 @@ function selectIsland(islandId: IslandId) {
   position: absolute;
   inset: 0;
   overflow: hidden;
+  pointer-events: none;
 }
 
 .square-map-page__artboard {
@@ -181,6 +184,7 @@ function selectIsland(islandId: IslandId) {
   width: 750rpx;
   height: 1624rpx;
   transform: translateX(-50%);
+  pointer-events: none;
 }
 
 .square-map-page__layer {
@@ -209,6 +213,10 @@ function selectIsland(islandId: IslandId) {
 }
 
 .square-map-page__ribbon-shell--outline {
+  pointer-events: none;
+}
+
+.square-map-page__ribbon-shell--outline {
   z-index: 0;
 }
 
@@ -223,7 +231,8 @@ function selectIsland(islandId: IslandId) {
   position: absolute;
   z-index: 3;
   background: transparent;
-  opacity: 0.001;
+  opacity: 0;
+  pointer-events: auto;
 }
 
 .square-map-page__hotspot--active {

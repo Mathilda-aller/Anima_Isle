@@ -4,10 +4,8 @@
 
 * **Name**: Anima Isle (言屿)
 * **Goal**: 一个基于 AI 的情感陪伴与视觉化治愈 App。通过三轮对话引导用户倾诉情绪，利用 AI 将情绪转译为“视觉图像+三行诗”的船票资产，并提供共感地图社交功能。
-* **State**: MVP 开发阶段 (后端逻辑已完成 98%，进入联调与前端开发阶段)。
+* **State**: MVP 开发阶段。
 * **Core Value**: 情绪转译、视觉治愈、共感社交。
-* 
-
 
 
 ## 2. Tech Stack (技术栈)
@@ -61,78 +59,6 @@
 
 - After each completed modification round, push the resulting commit to GitHub whenever the current repository has a configured remote that matches the intended project repository. When pushing from this local machine, prefer the user's local HTTP proxy at `http://127.0.0.1:22307`.
 
-## 4. Architecture & Structure (架构与目录)
-
-* `app/`: 核心应用源码
-* `main.py`: 应用入口，包含生命周期管理 (`lifespan`) 和全局中间件。
-* `database.py`: 数据库连接池配置 (MySQL)。
-* `deps.py`: 依赖注入 (Token 校验、获取当前用户)。
-* `models.py`: SQLAlchemy 数据库表定义 (User, Ticket, ChatSession, AIChatLog)。
-* `schemas.py`: Pydantic 数据交互模型 (Request/Response)。
-* `crud.py`: 数据库原子操作层 (只负责 SQL 读写，不含业务逻辑)。
-* `routers/`: 业务路由层 (Controller)
-* `auth.py`: 登录与鉴权 (Email/WeChat)。
-* `user.py`: 用户信息与偏好设置。
-* `chat.py`: **[核心]** 三轮对话状态机、AI 生成、Reroll 逻辑。
-* `ticket.py`: 记忆航线列表、详情、**烟雾测试接口**。
-* `square.py`: 共感地图、智能 Tag 推荐、社交互动。
-
-
-* `utils/`: 工具箱
-* `ai_engine.py`: 封装 DashScope 调用 (Retry, Risk Check, Tag Gen)。
-* `search_engine.py`: 封装 Zilliz 搜索 (含风格过滤、兜底图)。
-* `wechat.py`: 封装微信 `code2session`。
-* `security.py`: JWT 生成与哈希工具。
-
-
-
-
-* `data/`: 静态资源 (e.g., `questions.json`)。
-* `alembic/`: 数据库迁移脚本。
-
-## 5. Business Logic & Constraints (业务逻辑与约束)
-
-* **Chat FSM (聊天状态机)**:
-* 会话严格遵循 `Step 0 (Start)` -> `Step 1 (Q1 Answered)` -> `Step 2 (Generated)` -> `Step 3 (Finished)` 的流转。
-* 用户必须回答完 Q1 才能回答 Q2。
-
-
-* **Stateless Reroll (无状态重随)**:
-* 用户的 Embedding 向量缓存于 MySQL `ChatSession.last_embedding_vector`。
-* 切换风格时，直接读取缓存向量去 Zilliz 检索，**不重复调用 Embedding API**。
-
-
-* **Privacy First (隐私优先)**:
-* 生成的 Ticket 默认为私密 (`is_public=False`)。
-* 只有调用 `/square/publish` 接口并选定 Tag 后，才变为公开。
-
-
-* 
-**Smoke Test (烟雾测试)**:
-
-
-* 前端“兑换实体船票”是假按钮。
-* 点击后后端调用 `/tickets/{uid}/print_intent`，仅记录 `is_printed_intent=True`，用于统计商业意向。
-
-
-* **Data Tracking (数据埋点)**:
-* 必须记录 AI 的原始输入输出到 `AIChatLog` 表 (冷热分离) 。
-
-
-* 前端事件通过 `/log/event` 上报，后端通过 `BackgroundTasks` 异步写入。
-* 
-`server_auto_save`: 生成结果确认时必须强制入库 。
-
-
-
-
-* 
-**Risk Control (风控)**:
-
-
-* AI 检测到 `UNSAFE` 内容时，必须触发熔断，返回特定状态码，前端跳转心理援助页。
-
-
 
 ## 6. Known Quirks (已知怪癖/注意事项)
 
@@ -180,3 +106,19 @@
 - **One Component Per File**: 单个 `.vue` 文件如果超过 300 行，或者内部包含独立的 UI 块（如复杂的聊天气泡），必须抽离为单独的组件放到 `src/components/` 中。
 - **Props Definition**: 使用 `defineProps` 时必须写明类型 (Type) 和默认值 (Default)。
 - **Data Fetching**: 所有的 API 请求必须写在 `src/api/` 目录下，页面中只允许调用封装好的 API 函数。
+
+## 布局规则
+- 所有布局使用 Flexbox 或 Grid
+- 禁止新增 position: absolute（背景装饰层、浮层除外）
+- 遇到现有的不必要 absolute，顺手改为 flex
+
+## 样式规则
+- Figma 设计数据是唯一真相来源
+- 不得引入新的颜色、字体、圆角值（只能使用 Figma 中存在的值）
+- 字体单位保持 px，尺寸单位用 rpx
+
+## 执行规则
+- 不得重构组件结构，只修改样式属性
+- 每次修复只输出改动部分（diff 格式），不输出整个文件
+- 实现完成后运行 npm run type-check
+- 有任何不确定的地方，先写进 plan，等待审阅，不要自行决定

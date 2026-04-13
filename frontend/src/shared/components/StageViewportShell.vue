@@ -8,7 +8,7 @@ withDefaults(
   }>(),
   {
     viewportMaxWidth: "820rpx",
-    textureOpacity: 0.3,
+    textureOpacity: 0.55,
   },
 );
 </script>

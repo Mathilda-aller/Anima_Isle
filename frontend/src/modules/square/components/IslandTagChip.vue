@@ -26,9 +26,14 @@ const props = withDefaults(
   gap: 8rpx;
   min-height: 54rpx;
   padding: 0 22rpx 0 10rpx;
-  border-radius: 999rpx;
-  background: rgba(255, 255, 255, 0.03);
-  box-shadow: 0 0 8rpx rgba(255, 255, 255, 0.5);
+  border-radius: 200rpx;
+  background: radial-gradient(
+    circle at 20% 80%,
+    rgba(141, 234, 255, 0.24) 0%,
+    rgba(198, 244, 255, 0.62) 60%,
+    rgba(255, 255, 255, 1.0) 100%
+  );
+  box-shadow: 0 0 48rpx rgba(255, 255, 255, 0.25);
 }
 
 .island-tag-chip__avatar-shell {
@@ -46,11 +51,11 @@ const props = withDefaults(
 }
 
 .island-tag-chip__label {
-  color: var(--anima-text-dim);
-  font-size: 22rpx;
+  color: #ffffff;
+  font-size: 24rpx;
   line-height: 44rpx;
   letter-spacing: 1rpx;
-  text-shadow: var(--anima-shadow-title);
+  text-shadow: 0 0 8rpx rgba(255, 255, 255, 0.37);
   font-family: var(--anima-font-display);
 }
 </style>

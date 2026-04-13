@@ -14,6 +14,7 @@ import { useSquareStore } from "@/modules/square/store/square";
 import { useTicketStore } from "@/modules/ticket/store/ticket";
 import { ROUTES } from "@/shared/constants/routes";
 import { SHARED_ASSETS } from "@/shared/assets";
+import DarkBackgroundLayer from "@/shared/components/DarkBackgroundLayer.vue";
 
 type TagBubbleViewModel = {
   id: string;
@@ -33,6 +34,7 @@ const ticketStore = useTicketStore();
 const islandId = ref<IslandId>(DEFAULT_ISLAND_ID);
 const ticketUid = ref("");
 const entry = ref<"map" | "publish">("map");
+const sceneReady = ref(false);
 
 const islandConfig = computed(() => ISLAND_CONFIGS[islandId.value]);
 const pageTitle = computed(() => `欢迎来到${islandConfig.value.name}`);
@@ -54,9 +56,12 @@ const outlineStyle = computed(() => ({
   opacity: islandConfig.value.outlineOpacity,
   filter: `blur(${islandConfig.value.outlineBlur})`,
 }));
-const sceneTransform = computed(
-  () => `translate(${islandConfig.value.focusTranslateX}, ${islandConfig.value.focusTranslateY}) scale(${islandConfig.value.focusScale})`,
-);
+const sceneTransform = computed(() => {
+  if (!sceneReady.value) {
+    return "translate(0, 0) scale(1)";
+  }
+  return `translate(${islandConfig.value.focusTranslateX}, ${islandConfig.value.focusTranslateY}) scale(${islandConfig.value.focusScale})`;
+});
 const outlineLayerKeys = computed(() => new Set(islandConfig.value.outlineLayerKeys));
 const focusLayerKeys = computed(() => new Set(islandConfig.value.focusLayerKeys));
 const selectedOutlineLayers = computed(() =>
@@ -108,6 +113,10 @@ onLoad(async (query) => {
   if (ticketUid.value) {
     await ticketStore.fetchDetail(ticketUid.value);
   }
+
+  setTimeout(() => {
+    sceneReady.value = true;
+  }, 50);
 });
 
 function goBack() {
@@ -137,6 +146,7 @@ function openBubble(label: string) {
 
 <template>
   <view class="square-island-page">
+    <DarkBackgroundLayer :texture-opacity="0.55" />
     <view class="square-island-page__topbar">
       <view class="square-island-page__back" hover-class="tap-hover" @click="goBack">
         <image class="square-island-page__back-icon" :src="SHARED_ASSETS.icons.exit" mode="aspectFit" />
@@ -315,6 +325,8 @@ function openBubble(label: string) {
   width: 750rpx;
   height: 1624rpx;
   transform-origin: left top;
+  transition: transform 520ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
 }
 
 .square-island-page__artboard--focus {
@@ -371,8 +383,8 @@ function openBubble(label: string) {
   inset: 0;
   z-index: 2;
   pointer-events: none;
-  background: var(--anima-night-gradient);
-  opacity: 0.76;
+  background: rgba(5, 11, 24, 0.72);
+  opacity: 1;
 }
 
 .square-island-page__bubble {

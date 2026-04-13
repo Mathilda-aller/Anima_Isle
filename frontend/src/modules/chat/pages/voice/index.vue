@@ -163,13 +163,16 @@ const stageTop = computed(() => (
   voiceUiState.value === "recording" || voiceUiState.value === "transcribing" ? "25.29%" : "16.25%"
 ));
 const interactionTop = computed(() => (
-  voiceUiState.value === "recording" || voiceUiState.value === "transcribing" ? "58.35%" : "66.93%"
+  voiceUiState.value === "review" ? "" : voiceUiState.value === "recording" || voiceUiState.value === "transcribing" ? "58.35%" : "66.93%"
+));
+const interactionBottom = computed(() => (
+  voiceUiState.value === "review" ? "calc(4.2% + env(safe-area-inset-bottom))" : ""
 ));
 const interactionLeft = computed(() => (
   voiceUiState.value === "recording" || voiceUiState.value === "transcribing" ? "-1.74%" : "4%"
 ));
 const interactionWidth = computed(() => (
-  voiceUiState.value === "recording" || voiceUiState.value === "transcribing" ? "103.48%" : "92%"
+  voiceUiState.value === "review" ? "92%" : voiceUiState.value === "recording" || voiceUiState.value === "transcribing" ? "103.48%" : "92%"
 ));
 const showReviewActions = computed(() => voiceUiState.value === "review");
 const showPrimaryControls = computed(() => voiceUiState.value !== "review");
@@ -652,6 +655,7 @@ function stopSpeechRecognition() {
     :prompt-top="scenePromptTop"
     :center-top="sceneCenterTop"
     :interaction-top="interactionTop"
+    :interaction-bottom="interactionBottom"
     :interaction-left="interactionLeft"
     :interaction-width="interactionWidth"
     :transitioning="sceneTransitioning"
