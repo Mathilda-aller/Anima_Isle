@@ -383,15 +383,15 @@ function keepPrivate() {
 .ticket-detail-page__action {
   width: 198rpx;
   height: 64rpx;
-  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 10rpx;
-  border: var(--anima-button-border);
+  border: 1rpx solid rgba(255, 255, 255, 0.6);
   border-radius: 32rpx;
-  background: var(--anima-button-bg);
-  box-shadow: var(--anima-button-glow);
+  background:
+    linear-gradient(90deg, rgba(21, 31, 53, 0.75) 0%, rgba(50, 71, 128, 0.12) 52%, rgba(21, 31, 53, 0.75) 100%);
+  box-shadow: inset 0 0 20rpx rgba(255, 255, 255, 0.1);
   transition: opacity 180ms ease, transform 180ms ease;
 }
 

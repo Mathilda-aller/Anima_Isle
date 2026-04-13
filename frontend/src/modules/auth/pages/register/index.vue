@@ -114,30 +114,18 @@ const {
   flex-shrink: 0;
   width: 210rpx;
   height: 86rpx;
-  position: relative;
-  overflow: hidden;
   border-radius: var(--anima-radius-pill);
-  border: var(--anima-button-border);
+  border: none;
   background:
     var(--anima-button-code-sheen),
-    var(--anima-button-bg);
-  box-shadow: var(--anima-button-glow);
+    var(--anima-surface-field-strong);
+  box-shadow: var(--anima-shadow-field-soft);
+  border: 1rpx solid var(--anima-line-code-button);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 0 18rpx;
-  -webkit-appearance: none;
-  appearance: none;
-  transition: opacity 180ms ease, transform 180ms ease;
-}
-
-.code-row__button::before {
-  content: "";
-  position: absolute;
-  inset: 1rpx;
-  border-radius: inherit;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.01) 100%);
-  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
 .code-row__button::after {
@@ -149,12 +137,10 @@ const {
 }
 
 .code-row__button-text {
-  position: relative;
-  z-index: 1;
   color: var(--anima-text-float);
   font-size: 24rpx;
   letter-spacing: 1rpx;
-  line-height: 40rpx;
+  line-height: 1.2;
   text-align: center;
   text-shadow: 0 0 8rpx rgba(255, 255, 255, 0.22);
   font-family: var(--anima-font-display);
@@ -174,7 +160,7 @@ const {
 
 .code-row__button--hover {
   opacity: 0.82;
-  transform: translateY(2rpx) scale(0.98);
+  transform: scale(0.98);
 }
 
 @media screen and (max-width: 420px) {

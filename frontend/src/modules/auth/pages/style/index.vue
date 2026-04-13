@@ -242,23 +242,14 @@ async function submitSelection() {
   margin-top: 40px;
   width: 112px;
   height: 34px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
+  line-height: 34px;
   border-radius: 15px;
-  border: var(--anima-button-border);
-  color: var(--anima-text-main);
+  border: 1px solid rgba(194, 213, 233, 0.9);
+  color: var(--text-primary);
   font-size: 16px;
-  letter-spacing: 0.5px;
-  background: var(--anima-button-bg);
-  box-shadow: var(--anima-button-glow);
+  background: transparent;
   text-shadow: var(--anima-shadow-title);
   font-family: var(--anima-font-display);
-  -webkit-appearance: none;
-  appearance: none;
-  overflow: hidden;
-  transition: opacity 180ms ease, transform 180ms ease;
 }
 
 .confirm-btn::after {
@@ -276,7 +267,6 @@ async function submitSelection() {
 
 .button-hover {
   opacity: 0.88;
-  transform: translateY(2px) scale(0.98);
 }
 
 .error {

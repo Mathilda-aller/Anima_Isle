@@ -183,8 +183,6 @@ function openBubble(bubble: TagBubbleViewModel) {
           </view>
         </view>
 
-        <view class="square-island-page__dim-mask"></view>
-
         <view class="square-island-page__artboard square-island-page__artboard--focus" :style="{ transform: sceneTransform }">
           <image
             v-for="layer in selectedOutlineLayers"
