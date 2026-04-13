@@ -86,7 +86,6 @@ function closeCommunityModal() {
 
         <view class="resident-page__scene-shell">
           <image class="resident-page__scene" :src="AUTH_ASSETS.illustrations.residentScene" mode="aspectFill" />
-          <view class="resident-page__image-gradient"></view>
           <view class="resident-page__scene-mask"></view>
         </view>
         <view class="resident-page__scene-transition"></view>
@@ -108,20 +107,18 @@ function closeCommunityModal() {
             </view>
           </view>
 
-          <view class="resident-page__panel resident-page__glass-panel">
+          <view class="resident-page__panel">
             <text class="resident-page__panel-title">我的船票</text>
 
-            <view class="resident-page__ticket-shell">
-              <view class="resident-page__card-wrap" hover-class="card-hover" @click="openIdentity">
-                <view class="resident-page__card-rotation">
-                  <ResidentTicketCard
-                    class="resident-page__card-preview"
-                    :passenger-value="residentPassengerId"
-                    :travel-count="residentTravelCount"
-                    :travel-count-label="residentTravelLabel"
-                    :verification-code="residentVerificationCode"
-                  />
-                </view>
+            <view class="resident-page__card-wrap" hover-class="card-hover" @click="openIdentity">
+              <view class="resident-page__card-rotation">
+                <ResidentTicketCard
+                  class="resident-page__card-preview"
+                  :passenger-value="residentPassengerId"
+                  :travel-count="residentTravelCount"
+                  :travel-count-label="residentTravelLabel"
+                  :verification-code="residentVerificationCode"
+                />
               </view>
             </view>
 
@@ -195,30 +192,17 @@ function closeCommunityModal() {
 
 .resident-page__scene {
   position: absolute;
-  top: -0.02%;
-  left: 0;
-  width: 100%;
-  height: 113.64%;
-  opacity: 0.94;
-}
-
-.resident-page__image-gradient {
-  position: absolute;
   inset: 0;
-  pointer-events: none;
-  background: linear-gradient(
-    to top,
-    #354278 12.5%,
-    rgba(78, 94, 162, 0.62) 59.135%,
-    rgba(108, 130, 225, 0) 100%
-  );
+  width: 100%;
+  height: 100%;
+  opacity: 0.94;
 }
 
 .resident-page__scene-mask {
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(180deg, rgba(3, 13, 32, 0.04) 0%, rgba(3, 13, 32, 0.1) 42%, rgba(3, 13, 32, 0.3) 100%),
+    linear-gradient(180deg, rgba(3, 13, 32, 0.04) 0%, rgba(3, 13, 32, 0.12) 42%, rgba(3, 13, 32, 0.46) 100%),
     radial-gradient(circle at 50% 82%, rgba(126, 218, 255, 0.16) 0%, rgba(126, 218, 255, 0) 34%);
 }
 
@@ -297,7 +281,7 @@ function closeCommunityModal() {
 }
 
 .resident-page__hero-copy {
-  max-width: 313px;
+  width: 313px;
   margin-top: 21px;
   display: flex;
   flex-direction: column;
@@ -311,8 +295,7 @@ function closeCommunityModal() {
 
 .resident-page__hero-copy-line {
   display: block;
-  max-width: 100%;
-  white-space: normal;
+  white-space: nowrap;
 }
 
 .resident-page__panel {
@@ -320,29 +303,28 @@ function closeCommunityModal() {
   top: calc(545px + env(safe-area-inset-top));
   left: 50%;
   width: 358px;
-  min-height: 218px;
+  height: 218px;
   transform: translateX(-50%);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
   box-sizing: border-box;
   overflow: hidden;
-  padding: 16px 20px 18px;
-}
-
-.resident-page__glass-panel {
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 24rpx;
+  border: 1px solid rgba(236, 247, 255, 0.16);
+  border-radius: 34.844px;
   background:
-    radial-gradient(circle at 0 18%, rgba(18, 211, 255, 0.06) 0%, rgba(18, 211, 255, 0) 28%),
-    rgba(255, 255, 255, 0.05);
+    radial-gradient(circle at 0 18%, rgba(18, 211, 255, 0.08) 0%, rgba(18, 211, 255, 0) 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.13) 0%, rgba(255, 255, 255, 0.03) 100%),
+    var(--anima-resident-surface);
   box-shadow: var(--anima-resident-shadow);
-  backdrop-filter: blur(20rpx);
+  backdrop-filter: blur(28rpx);
 }
 
 .resident-page__panel-title {
-  width: 100%;
+  position: absolute;
+  top: 17px;
+  left: 148px;
+  width: 66px;
   color: var(--anima-text-strong);
   font-size: 16px;
   line-height: 28px;
@@ -351,18 +333,12 @@ function closeCommunityModal() {
   text-shadow: 0 0 8rpx rgba(255, 255, 255, 0.5);
 }
 
-.resident-page__ticket-shell {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 100%;
-  padding: 0 20px;
-}
-
 .resident-page__card-wrap {
-  width: 100%;
-  max-width: 310px;
-  height: 176px;
+  position: absolute;
+  top: 67px;
+  left: 101px;
+  width: 156.04px;
+  height: 84px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -370,10 +346,9 @@ function closeCommunityModal() {
 }
 
 .resident-page__card-rotation {
-  width: 295px;
-  height: 548px;
-  flex: 0 0 295px;
-  transform: rotate(-90deg) scale(0.5);
+  width: 84px;
+  height: 156.04px;
+  transform: rotate(-90deg) scale(0.2847);
   transform-origin: center;
 }
 
@@ -382,20 +357,23 @@ function closeCommunityModal() {
 }
 
 .resident-page__ticket-hint {
-  width: 100%;
-  max-width: 282px;
+  position: absolute;
+  top: 148px;
+  left: 26px;
+  width: 306px;
   color: rgba(255, 255, 255, 0.72);
   font-size: 10px;
   line-height: 18px;
   letter-spacing: 0.5px;
   text-align: center;
   text-shadow: 0 0 8rpx rgba(255, 255, 255, 0.24);
-  white-space: normal;
 }
 
 .resident-page__faq {
-  width: 100%;
-  max-width: 289px;
+  position: absolute;
+  top: 182px;
+  left: 33px;
+  width: 289px;
   display: flex;
   flex-direction: column;
 }
@@ -406,7 +384,6 @@ function closeCommunityModal() {
   line-height: 20px;
   letter-spacing: 0.5px;
   text-shadow: 0 0 8rpx rgba(255, 255, 255, 0.37);
-  white-space: normal;
 }
 
 .resident-page__cta {

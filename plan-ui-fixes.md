@@ -436,7 +436,7 @@ Each halo is a `position: absolute; pointer-events: none` decoration view behind
 |---|---|---|
 | `31:59` | Background hero image | `height: 113.64%` (overflows container), `top: -0.02%`. Full-bleed island/night sky AI photo. |
 | `31:61` | Gradient overlay on image | `linear-gradient(to top, #354278 12.5%, rgba(78,94,162,0.62) 59.135%, rgba(108,130,225,0) 100%)` |
-| `31:120` | Frosted glass panel | Node not in file — spec from brief: more transparent, lighter, text must not overflow |
+| `32:120` | Frosted glass panel | Node not in file — spec from brief: more transparent, lighter, text must not overflow |
 | `33:178` | Resident ticket card | `inset: [-5.11%_-10.85%_-6.57%_-10.85%]` — image bleeds beyond container. Must be centered. |
 
 **Current state:** Not read during research. Must read `frontend/src/modules/auth/pages/resident/index.vue` before implementing.
@@ -462,8 +462,8 @@ The background image sits at 113.64% height, slightly overflowing. The gradient 
 }
 ```
 
-**31:120 frosted glass panel:**
-Node missing from file; implement based on brief:
+**32:120 frosted glass panel:**
+  It should be more transparent, ligher.
 
 ```scss
 .resident-page__glass-panel {
@@ -516,7 +516,6 @@ Text content inside the ticket must be layered above the image (`z-index: 1`), w
 - `frontend/src/modules/auth/pages/resident/index.vue` (read first)
 - `frontend/src/modules/auth/pages/resident-ticket/index.vue` (read first — may contain ticket card too)
 
-**Risk:** Medium. Node `31:120` is missing from Figma — the frosted glass spec is approximate. Ticket text content layout needs to be read before the inset approach can be fully calculated.
 
 ---
 

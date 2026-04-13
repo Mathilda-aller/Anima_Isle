@@ -87,6 +87,7 @@ const monthDayLabel = computed(() => {
   border-radius: 42rpx;
   box-shadow: 0 8rpx 8rpx rgba(0, 0, 0, 0.25);
   transition: transform 180ms ease, opacity 180ms ease;
+  z-index: 2;
 }
 
 .ticket-timeline-card--left .ticket-timeline-card__card {
@@ -156,6 +157,7 @@ const monthDayLabel = computed(() => {
   top: 214rpx;
   width: 54rpx;
   height: 36rpx;
+  z-index: 3;
 }
 
 .ticket-timeline-card--left .ticket-timeline-card__cloud {
@@ -168,18 +170,20 @@ const monthDayLabel = computed(() => {
 
 .ticket-timeline-card__connector {
   position: absolute;
-  top: 230rpx;
-  width: 138rpx;
-  height: 258rpx;
+  top: 232rpx;
+  width: 622rpx;
+  height: 544rpx;
   opacity: 0.9;
+  z-index: 1;
+  pointer-events: none;
 }
 
 .ticket-timeline-card__connector--left {
-  right: 14rpx;
+  right: 0;
 }
 
 .ticket-timeline-card__connector--right {
-  left: 14rpx;
+  left: 0;
 }
 
 .ticket-timeline-card__card--hover {
@@ -208,6 +212,11 @@ const monthDayLabel = computed(() => {
 
   .ticket-timeline-card__poem {
     width: 276rpx;
+  }
+
+  .ticket-timeline-card__connector {
+    /* card(490) + gap(32) = 522rpx from cloud-to-cloud on small screens */
+    height: 522rpx;
   }
 }
 </style>
