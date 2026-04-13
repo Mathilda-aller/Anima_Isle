@@ -45,6 +45,10 @@ const displayedTags = computed(() => {
   return result.slice(0, 5);
 });
 
+function sampleBetween(min: number, max: number) {
+  return min + Math.random() * (max - min);
+}
+
 function shuffle<T>(items: T[]) {
   const cloned = [...items];
   for (let index = cloned.length - 1; index > 0; index -= 1) {
@@ -56,41 +60,38 @@ function shuffle<T>(items: T[]) {
 
 function buildBubbleLayouts(tags: string[]) {
   const sizeRanges: Array<[number, number]> = [
-    [128, 140],
-    [142, 156],
-    [160, 176],
-    [178, 196],
-    [118, 132],
+    [124, 136],
+    [136, 148],
+    [150, 166],
+    [170, 188],
+    [112, 126],
   ];
   const slots = ["top-left", "top-right", "center", "right-middle", "bottom-left"];
   const shuffledSizes = shuffle(sizeRanges).map(([min, max]) => Math.round(sampleBetween(min, max)));
+
   bubbleLayouts.value = tags.map((tag, index) => {
     const size = shuffledSizes[index] ?? 144;
     return {
       id: `${tag}-${index}`,
       tag,
       size,
-      fontSize: size >= 176 ? 24 : size >= 150 ? 22 : 20,
+      fontSize: size >= 170 ? 24 : size >= 148 ? 22 : 20,
       slot: slots[index % slots.length],
     };
   });
-}
-
-function sampleBetween(min: number, max: number) {
-  return min + Math.random() * (max - min);
 }
 
 const pageStyle = computed(() => ({
   "--publish-title-font-size": "32rpx",
   "--publish-title-line-height": "56rpx",
   "--publish-title-letter-spacing": "1rpx",
-  "--publish-title-gap": "44rpx",
+  "--publish-title-image-gap": "40rpx",
   "--publish-cover-width": "382rpx",
   "--publish-cover-radius": "42rpx",
-  "--publish-bubble-field-min-height": "412rpx",
-  "--publish-bubble-gap-x": "36rpx",
-  "--publish-bubble-gap-y": "28rpx",
-  "--publish-action-gap": "42rpx",
+  "--publish-bubble-section-gap": "28rpx",
+  "--publish-bubble-gap-x": "40rpx",
+  "--publish-bubble-gap-y": "30rpx",
+  "--publish-action-gap": "40rpx",
   "--publish-reroll-width": "100rpx",
   "--publish-reroll-icon-size": "48rpx",
   "--publish-reroll-font-size": "24rpx",
@@ -183,7 +184,7 @@ function goBack() {
           <view class="publish-page__cover-shell">
             <view class="publish-page__cover-aura" />
             <view class="publish-page__cover">
-              <image class="publish-page__cover-image" :src="ticketDetail.image_url" mode="aspectFill" />
+              <image class="publish-page__cover-image" :src="ticketDetail.image_url" mode="aspectFit" />
             </view>
           </view>
 
@@ -256,7 +257,7 @@ function goBack() {
   aspect-ratio: 402 / 874;
   display: flex;
   flex-direction: column;
-  padding: 48rpx 24rpx 40rpx;
+  padding: 44rpx 32rpx 36rpx;
   gap: 32rpx;
 }
 
@@ -281,7 +282,6 @@ function goBack() {
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  padding: calc(44rpx + env(safe-area-inset-top)) 32rpx 0;
   z-index: 4;
 }
 
@@ -302,22 +302,22 @@ function goBack() {
 
 .publish-page__content {
   flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
-  min-height: 0;
 }
 
 .publish-page__title {
-  max-width: 100%;
+  width: 100%;
   color: var(--anima-text-main);
   font-family: var(--anima-font-display);
   font-size: var(--publish-title-font-size);
   line-height: var(--publish-title-line-height);
   letter-spacing: var(--publish-title-letter-spacing);
+  text-align: center;
   white-space: nowrap;
   word-break: keep-all;
-  text-align: center;
   text-shadow: 0 0 8rpx rgba(255, 255, 255, 0.5);
 }
 
@@ -328,7 +328,8 @@ function goBack() {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-top: var(--publish-title-gap);
+  margin-top: var(--publish-title-image-gap);
+  flex-shrink: 0;
 }
 
 .publish-page__cover-aura {
@@ -344,27 +345,32 @@ function goBack() {
   position: relative;
   width: 100%;
   height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   overflow: hidden;
   border-radius: var(--publish-cover-radius);
+  background: rgba(21, 31, 53, 0.18);
   box-shadow: 8rpx 8rpx 48rpx rgba(0, 0, 0, 0.25);
 }
 
 .publish-page__cover-image {
   width: 100%;
   height: 100%;
+  flex-shrink: 0;
 }
 
 .publish-page__bubble-field {
-  flex: 1;
+  flex: 1 1 auto;
+  min-height: 0;
   width: 100%;
-  min-height: var(--publish-bubble-field-min-height);
   display: grid;
-  grid-template-columns: 1.05fr 1.28fr 1.05fr;
-  grid-template-rows: 1fr 1.1fr 1fr;
+  grid-template-columns: 1.05fr 1.24fr 1.05fr;
+  grid-template-rows: 1fr 1.08fr 1fr;
   gap: var(--publish-bubble-gap-y) var(--publish-bubble-gap-x);
   align-items: center;
-  margin-top: 36rpx;
-  padding: 8rpx 10rpx 0;
+  margin-top: var(--publish-bubble-section-gap);
+  overflow: hidden;
 }
 
 .publish-page__bubble-slot {
@@ -374,36 +380,36 @@ function goBack() {
 .publish-page__bubble-slot--top-left {
   grid-column: 1;
   grid-row: 1;
-  justify-content: flex-start;
   align-self: start;
+  justify-content: flex-start;
 }
 
 .publish-page__bubble-slot--top-right {
   grid-column: 3;
   grid-row: 1;
-  justify-content: flex-end;
   align-self: start;
+  justify-content: flex-end;
 }
 
 .publish-page__bubble-slot--center {
   grid-column: 2;
   grid-row: 2;
-  justify-content: center;
   align-self: center;
+  justify-content: center;
 }
 
 .publish-page__bubble-slot--right-middle {
   grid-column: 3;
   grid-row: 2;
-  justify-content: flex-end;
   align-self: center;
+  justify-content: center;
 }
 
 .publish-page__bubble-slot--bottom-left {
   grid-column: 1;
   grid-row: 3;
-  justify-content: flex-start;
   align-self: end;
+  justify-content: flex-start;
 }
 
 .publish-page__bubble {
@@ -441,15 +447,15 @@ function goBack() {
 
 .publish-page__actions {
   width: 100%;
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  gap: var(--publish-action-gap);
-  margin-top: auto;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: start;
   padding-top: 24rpx;
+  flex-shrink: 0;
 }
 
 .publish-page__publish-action {
+  grid-column: 2;
   width: 198rpx;
   height: 64rpx;
   display: flex;
@@ -484,11 +490,13 @@ function goBack() {
 }
 
 .publish-page__reroll {
+  grid-column: 3;
+  justify-self: start;
+  margin-left: var(--publish-action-gap);
   width: var(--publish-reroll-width);
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
   gap: 0;
   flex-shrink: 0;
   transition: opacity 180ms ease, transform 180ms ease;
