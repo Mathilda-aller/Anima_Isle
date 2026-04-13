@@ -117,14 +117,14 @@ function buildBubbleLayouts(tags: string[]) {
   bubbleLayouts.value = placements;
 }
 
-async function loadPageData() {
+async function loadPageData(forceRefreshTags = false) {
   if (!ticketUid.value) return;
 
   loading.value = true;
   try {
     await Promise.all([
       ticketStore.fetchDetail(ticketUid.value),
-      squareStore.suggestTagsForTicket(ticketUid.value),
+      squareStore.suggestTagsForTicket(ticketUid.value, { force: forceRefreshTags }),
     ]);
     buildBubbleLayouts(displayedTags.value);
   } finally {
@@ -150,7 +150,7 @@ function toggle(tag: string) {
 
 async function regenerateTags() {
   if (!ticketUid.value || loading.value) return;
-  await loadPageData();
+  await loadPageData(true);
 }
 
 async function doPublish() {

@@ -16,6 +16,7 @@ export interface CardPublishRequest {
 export interface SquareState {
   suggestedTags: string[];
   selectedTags: string[];
+  suggestedTagsByTicket: Record<string, string[]>;
   mapStars: MapStarDTO[];
   currentIsland: string;
   loading: boolean;

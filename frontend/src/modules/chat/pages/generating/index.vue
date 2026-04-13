@@ -6,6 +6,7 @@ import { useChatStore } from "@/modules/chat/store/chat";
 import { CHAT_ASSETS } from "@/modules/chat/assets";
 import ChatCabinScene from "@/modules/chat/components/ChatCabinScene.vue";
 import ChatTicketRevealCard from "@/modules/chat/components/ChatTicketRevealCard.vue";
+import { useSquareStore } from "@/modules/square/store/square";
 import { createAsyncFlowGuard } from "@/modules/chat/utils/asyncFlowGuard";
 import StageViewportShell from "@/shared/components/StageViewportShell.vue";
 import { ROUTES } from "@/shared/constants/routes";
@@ -14,6 +15,7 @@ import { toChatHome, toLogin } from "@/shared/utils/navigation";
 
 const authStore = useAuthStore();
 const chatStore = useChatStore();
+const squareStore = useSquareStore();
 const errorMsg = ref("");
 const confirmLoading = ref(false);
 const generatingStarted = ref(false);
@@ -123,9 +125,55 @@ function resetRevealText() {
 }
 
 function scheduleRevealStage(token: number) {
-  generationFlowGuard.schedule(token, () => {
+  const ticketImageUrl = chatStore.ticketDraft?.image_url ?? "";
+  void Promise.all([waitForDelay(1400), preloadTicketImage(ticketImageUrl)]).then(() => {
+    if (!generationFlowGuard.isCurrent(token)) {
+      return;
+    }
     finishedStage.value = "reveal";
-  }, 1400);
+  });
+}
+
+function waitForDelay(delay: number) {
+  return new Promise<void>((resolve) => {
+    setTimeout(resolve, delay);
+  });
+}
+
+function preloadTicketImage(imageUrl: string) {
+  if (!imageUrl) {
+    return Promise.resolve(false);
+  }
+
+  return new Promise<boolean>((resolve) => {
+    let settled = false;
+    const timeout = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      resolve(false);
+    }, 15000);
+
+    const finish = (result: boolean) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      resolve(result);
+    };
+
+    if (typeof Image !== "undefined") {
+      const image = new Image();
+      image.onload = () => finish(true);
+      image.onerror = () => finish(false);
+      image.src = imageUrl;
+      return;
+    }
+
+    uni.getImageInfo({
+      src: imageUrl,
+      success: () => finish(true),
+      fail: () => finish(false),
+    });
+  });
 }
 
 async function beginGeneratingIfNeeded() {
@@ -230,6 +278,7 @@ async function confirmCard() {
 
   try {
     const ticketUid = chatStore.ticketDraft.ticket_uid;
+    squareStore.cacheSuggestedTags(ticketUid, chatStore.ticketDraft.recommended_tags);
     await chatStore.confirmTicketSelection();
     chatStore.resetSession();
     uni.redirectTo({

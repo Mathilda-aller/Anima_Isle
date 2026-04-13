@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { ref, watch } from "vue";
+
 const props = withDefaults(
   defineProps<{
     promptText?: string;
@@ -24,6 +26,16 @@ const emit = defineEmits<{
   (e: "reroll"): void;
 }>();
 
+const imageState = ref<"idle" | "loading" | "ready" | "error">("idle");
+
+watch(
+  () => props.imageUrl,
+  (next) => {
+    imageState.value = next ? "loading" : "idle";
+  },
+  { immediate: true },
+);
+
 function onAccept() {
   if (props.acceptDisabled) return;
   emit("accept");
@@ -32,6 +44,14 @@ function onAccept() {
 function onReroll() {
   if (props.rerollDisabled) return;
   emit("reroll");
+}
+
+function handleImageLoad() {
+  imageState.value = "ready";
+}
+
+function handleImageError() {
+  imageState.value = "error";
 }
 </script>
 
@@ -46,9 +66,14 @@ function onReroll() {
           class="chat-ticket-reveal-card__image"
           :src="imageUrl"
           mode="aspectFill"
+          :show-menu-by-longpress="false"
+          @load="handleImageLoad"
+          @error="handleImageError"
         />
-        <view v-else class="chat-ticket-reveal-card__placeholder">
-          <text class="chat-ticket-reveal-card__placeholder-text">图像整理中</text>
+        <view v-if="!imageUrl || imageState !== 'ready'" class="chat-ticket-reveal-card__placeholder">
+          <text class="chat-ticket-reveal-card__placeholder-text">
+            {{ imageState === "error" ? "图像暂未加载成功" : "图像整理中" }}
+          </text>
         </view>
       </view>
     </view>

@@ -187,6 +187,58 @@ async def _await_route_and_embedding(
         raise
 
 
+async def _await_recommended_tags(
+    *,
+    tags_task: asyncio.Task[Any],
+    trace_id: str,
+    session_id: str,
+    user_id: int,
+    breakdown: Dict[str, int],
+    tags_started: float,
+) -> List[str]:
+    try:
+        tags = await tags_task
+        normalized_tags = tags or DEFAULT_RECOMMENDED_TAGS.copy()
+        _stage_end(
+            trace_id,
+            session_id,
+            user_id,
+            breakdown,
+            "suggested_tags",
+            tags_started,
+            tag_count=len(normalized_tags),
+            fallback=False,
+        )
+        return normalized_tags
+    except Exception as exc:
+        fallback_tags = DEFAULT_RECOMMENDED_TAGS.copy()
+        logger.warning(
+            "suggested_tags fallback used",
+            extra={
+                "trace_id": trace_id,
+                "session_id": session_id,
+                "user_id": user_id,
+                "error_code": _map_generation_error(exc),
+                "error_type": type(exc).__name__,
+                "error_message": str(exc),
+            },
+        )
+        _stage_end(
+            trace_id,
+            session_id,
+            user_id,
+            breakdown,
+            "suggested_tags",
+            tags_started,
+            tag_count=len(fallback_tags),
+            fallback=True,
+            error_code=_map_generation_error(exc),
+            error_type=type(exc).__name__,
+            error_message=str(exc),
+        )
+        return fallback_tags
+
+
 def load_questions_from_json() -> None:
     global QUESTIONS_DB
     current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -334,121 +386,135 @@ async def _generate_ticket_bundle(
     breakdown: Dict[str, int],
     reply_text: str,
 ) -> Dict[str, Any]:
-    route_started = _stage_start(trace_id, session.session_id, current_user.id, "emotion_route")
-    embedding_started = _stage_start(trace_id, session.session_id, current_user.id, "embedding")
-    route_task = asyncio.create_task(ai_engine.classify_emotion_route(full_context, trace_id=trace_id))
-    embedding_task = asyncio.create_task(ai_engine.get_embedding(full_context, trace_id=trace_id))
+    tags_started = _stage_start(trace_id, session.session_id, current_user.id, "suggested_tags")
+    tags_task = asyncio.create_task(ai_engine.generate_suggested_tags(full_context, trace_id=trace_id))
+    try:
+        route_started = _stage_start(trace_id, session.session_id, current_user.id, "emotion_route")
+        embedding_started = _stage_start(trace_id, session.session_id, current_user.id, "embedding")
+        route_task = asyncio.create_task(ai_engine.classify_emotion_route(full_context, trace_id=trace_id))
+        embedding_task = asyncio.create_task(ai_engine.get_embedding(full_context, trace_id=trace_id))
 
-    route_result, vector = await _await_route_and_embedding(
-        route_task=route_task,
-        embedding_task=embedding_task,
-        trace_id=trace_id,
-        session_id=session.session_id,
-        user_id=current_user.id,
-        breakdown=breakdown,
-        route_started=route_started,
-        embedding_started=embedding_started,
-    )
-    _stage_end(
-        trace_id,
-        session.session_id,
-        current_user.id,
-        breakdown,
-        "emotion_route",
-        route_started,
-        island_target=route_result["Island"],
-        intensity=route_result["Intensity"],
-    )
-    _stage_end(
-        trace_id,
-        session.session_id,
-        current_user.id,
-        breakdown,
-        "embedding",
-        embedding_started,
-        vector_size=len(vector),
-    )
+        route_result, vector = await _await_route_and_embedding(
+            route_task=route_task,
+            embedding_task=embedding_task,
+            trace_id=trace_id,
+            session_id=session.session_id,
+            user_id=current_user.id,
+            breakdown=breakdown,
+            route_started=route_started,
+            embedding_started=embedding_started,
+        )
+        _stage_end(
+            trace_id,
+            session.session_id,
+            current_user.id,
+            breakdown,
+            "emotion_route",
+            route_started,
+            island_target=route_result["Island"],
+            intensity=route_result["Intensity"],
+        )
+        _stage_end(
+            trace_id,
+            session.session_id,
+            current_user.id,
+            breakdown,
+            "embedding",
+            embedding_started,
+            vector_size=len(vector),
+        )
 
-    search_started = _stage_start(trace_id, session.session_id, current_user.id, "vector_search")
-    candidate_images = search_engine.search_island_candidates(
-        vector=vector,
-        island_target=route_result["Island"],
-        intensity=route_result["Intensity"],
-        top_k=3,
-    )
-    _stage_end(
-        trace_id,
-        session.session_id,
-        current_user.id,
-        breakdown,
-        "vector_search",
-        search_started,
-        candidate_count=len(candidate_images),
-    )
-    primary = candidate_images[0]
+        search_started = _stage_start(trace_id, session.session_id, current_user.id, "vector_search")
+        candidate_images = search_engine.search_island_candidates(
+            vector=vector,
+            island_target=route_result["Island"],
+            intensity=route_result["Intensity"],
+            top_k=3,
+        )
+        _stage_end(
+            trace_id,
+            session.session_id,
+            current_user.id,
+            breakdown,
+            "vector_search",
+            search_started,
+            candidate_count=len(candidate_images),
+        )
+        primary = candidate_images[0]
 
-    poem_started = _stage_start(trace_id, session.session_id, current_user.id, "three_line_poem")
-    generated_poem = await ai_engine.generate_three_line_poem(
-        full_context,
-        primary.get("image_description") or "海面的雾与微光",
-        trace_id=trace_id,
-    )
-    _stage_end(
-        trace_id,
-        session.session_id,
-        current_user.id,
-        breakdown,
-        "three_line_poem",
-        poem_started,
-    )
+        poem_started = _stage_start(trace_id, session.session_id, current_user.id, "three_line_poem")
+        generated_poem = await ai_engine.generate_three_line_poem(
+            full_context,
+            primary.get("image_description") or "海面的雾与微光",
+            trace_id=trace_id,
+        )
+        _stage_end(
+            trace_id,
+            session.session_id,
+            current_user.id,
+            breakdown,
+            "three_line_poem",
+            poem_started,
+        )
+        recommended_tags = await _await_recommended_tags(
+            tags_task=tags_task,
+            trace_id=trace_id,
+            session_id=session.session_id,
+            user_id=current_user.id,
+            breakdown=breakdown,
+            tags_started=tags_started,
+        )
 
-    ticket_payload = {
-        "image_url": primary.get("image_url"),
-        "poem_content": generated_poem,
-        "image_style": None,
-        "user_diary_summary": full_context,
-        "island_category": route_result["Island"],
-        "selected_image_id": primary.get("image_id"),
-    }
+        ticket_payload = {
+            "image_url": primary.get("image_url"),
+            "poem_content": generated_poem,
+            "image_style": None,
+            "user_diary_summary": full_context,
+            "island_category": route_result["Island"],
+            "selected_image_id": primary.get("image_id"),
+        }
 
-    ticket_started = _stage_start(trace_id, session.session_id, current_user.id, "ticket_create")
-    new_ticket = crud.create_ticket(db, ticket_payload, user_id=current_user.id)
-    _stage_end(
-        trace_id,
-        session.session_id,
-        current_user.id,
-        breakdown,
-        "ticket_create",
-        ticket_started,
-        ticket_uid=new_ticket.ticket_uid,
-    )
+        ticket_started = _stage_start(trace_id, session.session_id, current_user.id, "ticket_create")
+        new_ticket = crud.create_ticket(db, ticket_payload, user_id=current_user.id)
+        _stage_end(
+            trace_id,
+            session.session_id,
+            current_user.id,
+            breakdown,
+            "ticket_create",
+            ticket_started,
+            ticket_uid=new_ticket.ticket_uid,
+        )
 
-    session_finish_started = _stage_start(trace_id, session.session_id, current_user.id, "session_finish")
-    crud.update_chat_step(db, session.session_id, step=3)
-    _stage_end(trace_id, session.session_id, current_user.id, breakdown, "session_finish", session_finish_started)
+        session_finish_started = _stage_start(trace_id, session.session_id, current_user.id, "session_finish")
+        crud.update_chat_step(db, session.session_id, step=3)
+        _stage_end(trace_id, session.session_id, current_user.id, breakdown, "session_finish", session_finish_started)
 
-    _write_ai_log(
-        db=db,
-        trace_id=trace_id,
-        session_id=session.session_id,
-        user_id=current_user.id,
-        full_context=full_context,
-        reply_text=reply_text,
-        risk_flag=False,
-        breakdown=breakdown,
-    )
+        _write_ai_log(
+            db=db,
+            trace_id=trace_id,
+            session_id=session.session_id,
+            user_id=current_user.id,
+            full_context=full_context,
+            reply_text=reply_text,
+            risk_flag=False,
+            breakdown=breakdown,
+        )
 
-    return {
-        "id": new_ticket.id,
-        "ticket_uid": new_ticket.ticket_uid,
-        "image_url": primary.get("image_url"),
-        "poem_content": generated_poem,
-        "island_category": route_result["Island"],
-        "is_public": False,
-        "created_at": new_ticket.created_at,
-        "recommended_tags": DEFAULT_RECOMMENDED_TAGS.copy(),
-        "candidate_images": candidate_images,
-    }
+        return {
+            "id": new_ticket.id,
+            "ticket_uid": new_ticket.ticket_uid,
+            "image_url": primary.get("image_url"),
+            "poem_content": generated_poem,
+            "island_category": route_result["Island"],
+            "is_public": False,
+            "created_at": new_ticket.created_at,
+            "recommended_tags": recommended_tags,
+            "candidate_images": candidate_images,
+        }
+    except BaseException:
+        await _cancel_background_tasks(tags_task)
+        raise
 
 
 async def _save_q2_and_build_context(
@@ -600,6 +666,7 @@ async def _stream_final_reply_events(
 ) -> AsyncIterator[str]:
     route_task: Optional[asyncio.Task[Any]] = None
     embedding_task: Optional[asyncio.Task[Any]] = None
+    tags_task: Optional[asyncio.Task[Any]] = None
 
     try:
         await _raise_if_client_disconnected(is_disconnected)
@@ -654,8 +721,10 @@ async def _stream_final_reply_events(
 
         route_started = _stage_start(trace_id, session.session_id, current_user.id, "emotion_route")
         embedding_started = _stage_start(trace_id, session.session_id, current_user.id, "embedding")
+        tags_started = _stage_start(trace_id, session.session_id, current_user.id, "suggested_tags")
         route_task = asyncio.create_task(ai_engine.classify_emotion_route(full_context, trace_id=trace_id))
         embedding_task = asyncio.create_task(ai_engine.get_embedding(full_context, trace_id=trace_id))
+        tags_task = asyncio.create_task(ai_engine.generate_suggested_tags(full_context, trace_id=trace_id))
         yield _sse_event("asset_started", {"trace_id": trace_id})
 
         empathy_started = _stage_start(trace_id, session.session_id, current_user.id, "empathy_text")
@@ -736,6 +805,15 @@ async def _stream_final_reply_events(
             trace_id=trace_id,
         )
         _stage_end(trace_id, session.session_id, current_user.id, breakdown, "three_line_poem", poem_started)
+        recommended_tags = await _await_recommended_tags(
+            tags_task=tags_task,
+            trace_id=trace_id,
+            session_id=session.session_id,
+            user_id=current_user.id,
+            breakdown=breakdown,
+            tags_started=tags_started,
+        )
+        tags_task = None
 
         await _raise_if_client_disconnected(is_disconnected)
         ticket_payload = {
@@ -773,7 +851,7 @@ async def _stream_final_reply_events(
             "island_category": route_result["Island"],
             "is_public": False,
             "created_at": new_ticket.created_at,
-            "recommended_tags": DEFAULT_RECOMMENDED_TAGS.copy(),
+            "recommended_tags": recommended_tags,
             "candidate_images": candidate_images,
         }
         yield _sse_event("asset_ready", {"ticket_data": ticket_data, "trace_id": trace_id})
@@ -786,10 +864,10 @@ async def _stream_final_reply_events(
             },
         )
     except asyncio.CancelledError:
-        await _cancel_background_tasks(route_task, embedding_task)
+        await _cancel_background_tasks(route_task, embedding_task, tags_task)
         return
     except Exception as exc:
-        await _cancel_background_tasks(route_task, embedding_task)
+        await _cancel_background_tasks(route_task, embedding_task, tags_task)
         error_code = _map_generation_error(exc)
         _log_chat_event(
             logging.ERROR,
