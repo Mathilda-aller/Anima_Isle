@@ -57,7 +57,7 @@
 
 - After each completed modification round, create a commit before moving on to the next requested change whenever the current repository layout allows it.
 
-- After each completed modification round, push the resulting commit to GitHub whenever the current repository has a configured remote that matches the intended project repository. When pushing from this local machine, prefer the user's local HTTP proxy at `http://127.0.0.1:22307`.
+- After each completed modification round, push the resulting commit to `https://github.com/Mathilda-aller/Anima_Isle.git` (the `origin` remote in this repo). When pushing from this local machine, prefer the user's local HTTP proxy at `http://127.0.0.1:22307`.
 
 
 ## 6. Known Quirks (已知怪癖/注意事项)
