@@ -388,14 +388,24 @@ function goPublish() {
 
 .small-btn {
   flex: 1;
-  border: none;
-  border-radius: var(--anima-radius-sm);
-  background: var(--anima-button-primary);
-  color: var(--text-primary);
+  height: 64rpx;
+  padding: 0;
+  border: var(--anima-button-border);
+  border-radius: 30rpx;
+  background: var(--anima-button-bg);
+  box-shadow: var(--anima-button-glow);
+  color: var(--anima-text-main);
+  font-family: var(--anima-font-display);
+  font-size: 32rpx;
+  letter-spacing: 1rpx;
+  text-shadow: var(--anima-shadow-title);
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 .small-btn.ghost {
-  background: var(--anima-button-secondary);
+  background:
+    linear-gradient(135deg, rgba(10, 18, 48, 0.68) 0%, rgba(18, 31, 58, 0.3) 50%, rgba(10, 18, 48, 0.68) 100%);
 }
 
 .error {

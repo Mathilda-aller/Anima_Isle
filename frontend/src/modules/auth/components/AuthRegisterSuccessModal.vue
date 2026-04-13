@@ -152,14 +152,17 @@ const emit = defineEmits<{
   margin-top: 64rpx;
   width: 510rpx;
   height: 84rpx;
+  overflow: hidden;
   border-radius: 100rpx;
-  border: 1.386rpx solid rgba(255, 255, 255, 0.1);
-  background: linear-gradient(90deg, rgba(116, 212, 234, 0.2) 0%, rgba(90, 166, 183, 0.2) 100%);
-  box-shadow: 0 0 48rpx rgba(255, 255, 255, 0.25);
+  border: var(--anima-button-border);
+  background: var(--anima-button-bg);
+  box-shadow: var(--anima-button-glow);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 0;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 .register-success-modal__button::after {

@@ -25,9 +25,11 @@ defineEmits<{
   width: 100%;
   height: 100%;
   padding: 0;
+  overflow: hidden;
   border-radius: var(--anima-radius-pill);
-  border: 1rpx solid rgba(230, 248, 255, 0.34);
-  background: transparent;
+  border: var(--anima-button-border);
+  background: var(--anima-button-bg);
+  box-shadow: var(--anima-button-glow);
   color: var(--anima-text-main);
   font-size: 32rpx;
   line-height: 66rpx;
@@ -35,6 +37,8 @@ defineEmits<{
   text-align: center;
   text-shadow: var(--anima-shadow-title);
   font-family: var(--anima-font-display);
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 .chat-outline-button::after {
@@ -47,5 +51,6 @@ defineEmits<{
 
 .button-hover {
   opacity: 0.88;
+  transform: translateY(2rpx) scale(0.98);
 }
 </style>

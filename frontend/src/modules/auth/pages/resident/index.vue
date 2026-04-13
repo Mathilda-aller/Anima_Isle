@@ -393,20 +393,22 @@ function closeCommunityModal() {
   width: 104px;
   height: 33px;
   margin-left: -52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
   padding: 0;
-  line-height: 33px;
-  border: none;
+  line-height: 56rpx;
+  border: var(--anima-button-border);
   border-radius: 15px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.015) 100%),
-    rgba(0, 0, 0, 0);
-  color: var(--anima-text-strong);
+  background: var(--anima-button-bg);
+  color: var(--anima-text-main);
   font-size: 16px;
   letter-spacing: 0.5px;
   text-shadow: 0 0 8rpx rgba(255, 255, 255, 0.5);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.48),
-    0 0 18px rgba(184, 213, 255, 0.12);
+  box-shadow: var(--anima-button-glow);
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 .resident-page__cta::after {
@@ -416,15 +418,9 @@ function closeCommunityModal() {
 .resident-page__cta::before {
   content: "";
   position: absolute;
-  inset: 0;
+  inset: 1px;
   border-radius: inherit;
-  padding: 1px;
-  background: linear-gradient(180deg, rgba(233, 243, 255, 0.72) 0%, rgba(170, 193, 238, 0.22) 100%);
-  -webkit-mask:
-    linear-gradient(#fff 0 0) content-box,
-    linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.01) 100%);
   pointer-events: none;
 }
 
@@ -432,6 +428,7 @@ function closeCommunityModal() {
 .card-hover,
 .button-hover {
   opacity: 0.88;
+  transform: translateY(2px) scale(0.98);
 }
 
 .card-hover {
