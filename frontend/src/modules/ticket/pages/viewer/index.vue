@@ -274,10 +274,10 @@ function toggleCard() {
 
 .ticket-viewer__topbar {
   position: absolute;
-  top: calc(48rpx + env(safe-area-inset-top));
+  top: 0;
   left: 0;
   width: 100%;
-  padding: 0 24rpx;
+  padding: calc(44rpx + env(safe-area-inset-top)) 32rpx 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -287,6 +287,7 @@ function toggleCard() {
 .ticket-viewer__top-action {
   width: 48rpx;
   height: 48rpx;
+  flex: 0 0 48rpx;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -296,8 +297,9 @@ function toggleCard() {
   color: rgba(209, 213, 220, 0.92);
   font-family: var(--anima-font-display);
   font-size: 24rpx;
-  line-height: 35rpx;
+  line-height: 58rpx;
   letter-spacing: 1rpx;
+  text-align: center;
 }
 
 .ticket-viewer__poem {

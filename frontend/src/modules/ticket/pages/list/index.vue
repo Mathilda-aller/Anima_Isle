@@ -52,6 +52,7 @@ function goBack() {
           <image class="ticket-list-page__back-icon" :src="SHARED_ASSETS.icons.exit" mode="aspectFit" />
         </view>
         <text class="ticket-list-page__title">记忆航线</text>
+        <view class="ticket-list-page__topbar-spacer"></view>
       </view>
 
       <view v-if="hasTimeline" class="ticket-list-page__timeline">
@@ -82,19 +83,27 @@ function goBack() {
   min-height: 100vh;
   width: min(100%, 804rpx);
   margin: 0 auto;
-  padding: calc(48rpx + env(safe-area-inset-top)) 24rpx calc(40rpx + env(safe-area-inset-bottom));
+  padding: 0 24rpx calc(40rpx + env(safe-area-inset-bottom));
   z-index: 1;
 }
 
 .ticket-list-page__topbar {
+  position: relative;
+  z-index: 2;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding: calc(88rpx + env(safe-area-inset-top)) 32rpx 0;
+}
+
+.ticket-list-page__back,
+.ticket-list-page__topbar-spacer {
+  width: 48rpx;
+  height: 48rpx;
+  flex: 0 0 48rpx;
 }
 
 .ticket-list-page__back {
-  width: 48rpx;
-  height: 48rpx;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -102,17 +111,18 @@ function goBack() {
 }
 
 .ticket-list-page__back-icon {
-  width: 40rpx;
-  height: 40rpx;
+  width: 48rpx;
+  height: 48rpx;
 }
 
 .ticket-list-page__title {
   color: var(--anima-text-main);
   font-family: var(--anima-font-display);
   font-size: 48rpx;
-  line-height: 56rpx;
+  line-height: 70rpx;
   letter-spacing: 1rpx;
-  text-shadow: 0 0 8rpx rgba(255, 255, 255, 0.5);
+  text-align: center;
+  text-shadow: var(--anima-shadow-title);
 }
 
 .ticket-list-page__timeline {

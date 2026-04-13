@@ -239,19 +239,25 @@ function openBubble(label: string) {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: calc(92rpx + env(safe-area-inset-top)) 22rpx 0;
+  padding: calc(92rpx + env(safe-area-inset-top)) 32rpx 0;
 }
 
 .square-island-page__back,
 .square-island-page__topbar-spacer {
-  width: 46rpx;
-  height: 46rpx;
-  flex: 0 0 46rpx;
+  width: 48rpx;
+  height: 48rpx;
+  flex: 0 0 48rpx;
+}
+
+.square-island-page__back {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .square-island-page__back-icon {
-  width: 100%;
-  height: 100%;
+  width: 48rpx;
+  height: 48rpx;
 }
 
 .square-island-page__title,
@@ -264,9 +270,10 @@ function openBubble(label: string) {
 }
 
 .square-island-page__title {
-  font-size: 38rpx;
-  line-height: 54rpx;
+  font-size: 48rpx;
+  line-height: 70rpx;
   letter-spacing: 1rpx;
+  text-align: center;
 }
 
 .square-island-page__transport-message {

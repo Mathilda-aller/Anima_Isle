@@ -281,12 +281,14 @@ function goBack() {
   display: flex;
   align-items: center;
   justify-content: flex-start;
+  padding: calc(44rpx + env(safe-area-inset-top)) 32rpx 0;
   z-index: 4;
 }
 
 .publish-page__back {
   width: 48rpx;
   height: 48rpx;
+  flex: 0 0 48rpx;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -294,8 +296,8 @@ function goBack() {
 }
 
 .publish-page__back-icon {
-  width: 40rpx;
-  height: 40rpx;
+  width: 48rpx;
+  height: 48rpx;
 }
 
 .publish-page__content {

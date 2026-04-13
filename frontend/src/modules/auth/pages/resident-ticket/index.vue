@@ -99,6 +99,7 @@ function shareTicket() {
       <view class="resident-ticket-page__glow"></view>
 
       <view class="resident-ticket-page__header">
+        <view class="resident-ticket-page__header-spacer"></view>
         <text class="resident-ticket-page__title">我的船票</text>
         <view class="resident-ticket-page__share" hover-class="tap-hover" @click="shareTicket">
           <image class="resident-ticket-page__share-icon" :src="TICKET_ASSETS.icons.share" mode="aspectFit" />
@@ -160,31 +161,35 @@ function shareTicket() {
 .resident-ticket-page__header {
   position: relative;
   z-index: 2;
-  padding: calc(40rpx + env(safe-area-inset-top)) 24rpx 0 16rpx;
+  padding: calc(88rpx + env(safe-area-inset-top)) 32rpx 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
 .resident-ticket-page__title {
-  color: var(--anima-text-strong);
+  color: var(--anima-text-main);
   font-family: var(--anima-font-display);
   font-size: 48rpx;
-  line-height: 1.2;
-  text-shadow: 0 0 8rpx rgba(255, 255, 255, 0.37);
+  line-height: 70rpx;
+  letter-spacing: 1rpx;
+  text-align: center;
+  text-shadow: var(--anima-shadow-title);
 }
 
+.resident-ticket-page__header-spacer,
 .resident-ticket-page__share {
   width: 48rpx;
   height: 48rpx;
+  flex: 0 0 48rpx;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .resident-ticket-page__share-icon {
-  width: 24px;
-  height: 24px;
+  width: 48rpx;
+  height: 48rpx;
 }
 
 .resident-ticket-page__stage {

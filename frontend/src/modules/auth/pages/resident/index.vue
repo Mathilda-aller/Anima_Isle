@@ -91,8 +91,12 @@ function closeCommunityModal() {
         <view class="resident-page__scene-transition"></view>
 
         <view class="resident-page__canvas">
-          <view class="resident-page__back" hover-class="tap-hover" @click="goBack">
-            <image class="resident-page__back-icon" :src="SHARED_ASSETS.icons.exit" mode="aspectFit" />
+          <view class="resident-page__topbar">
+            <view class="resident-page__back" hover-class="tap-hover" @click="goBack">
+              <image class="resident-page__back-icon" :src="SHARED_ASSETS.icons.exit" mode="aspectFit" />
+            </view>
+            <text class="resident-page__topbar-title">成为屿民</text>
+            <view class="resident-page__topbar-spacer"></view>
           </view>
 
           <view class="resident-page__hero">
@@ -224,20 +228,42 @@ function closeCommunityModal() {
   z-index: 1;
 }
 
+.resident-page__topbar {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: calc(44px + env(safe-area-inset-top)) 16px 0;
+}
+
 .resident-page__back {
-  position: absolute;
-  top: calc(48px + env(safe-area-inset-top));
-  left: 16px;
   width: 24px;
   height: 24px;
+  flex: 0 0 24px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
+.resident-page__topbar-spacer {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+}
+
 .resident-page__back-icon {
   width: 24px;
   height: 24px;
+}
+
+.resident-page__topbar-title {
+  color: var(--anima-text-main);
+  font-size: 24px;
+  line-height: 35px;
+  letter-spacing: 0.5px;
+  text-align: center;
+  text-shadow: var(--anima-shadow-title);
 }
 
 .resident-page__hero {

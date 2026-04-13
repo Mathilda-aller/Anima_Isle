@@ -137,35 +137,42 @@ function selectIsland(islandId: IslandId) {
   min-height: 100vh;
   max-width: 750rpx;
   margin: 0 auto;
-  padding: calc(48rpx + env(safe-area-inset-top)) 8rpx env(safe-area-inset-bottom);
+  padding: 0 8rpx env(safe-area-inset-bottom);
 }
 
 .square-map-page__topbar {
   position: relative;
-  z-index: 2;
+  z-index: 3;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 44rpx 22rpx 0;
+  padding: calc(92rpx + env(safe-area-inset-top)) 32rpx 0;
 }
 
 .square-map-page__back,
 .square-map-page__topbar-spacer {
-  width: 46rpx;
-  height: 46rpx;
-  flex: 0 0 46rpx;
+  width: 48rpx;
+  height: 48rpx;
+  flex: 0 0 48rpx;
+}
+
+.square-map-page__back {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .square-map-page__back-icon {
-  width: 100%;
-  height: 100%;
+  width: 48rpx;
+  height: 48rpx;
 }
 
 .square-map-page__title {
   color: var(--anima-text-main);
-  font-size: 38rpx;
-  line-height: 54rpx;
+  font-size: 48rpx;
+  line-height: 70rpx;
   letter-spacing: 1rpx;
+  text-align: center;
   text-shadow: var(--anima-shadow-title);
   font-family: var(--anima-font-display);
 }

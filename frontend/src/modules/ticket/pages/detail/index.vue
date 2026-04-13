@@ -244,10 +244,10 @@ function keepPrivate() {
 
 .ticket-detail-page__topbar {
   position: absolute;
-  top: 5.49%;
-  left: 1%;
-  width: 97.95%;
-  padding: 0 4%;
+  top: 0;
+  left: 0;
+  width: 100%;
+  padding: calc(44rpx + env(safe-area-inset-top)) 32rpx 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -258,6 +258,7 @@ function keepPrivate() {
 .ticket-detail-page__share {
   width: 48rpx;
   height: 48rpx;
+  flex: 0 0 48rpx;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -266,8 +267,8 @@ function keepPrivate() {
 
 .ticket-detail-page__back-icon,
 .ticket-detail-page__share-icon {
-  width: 40rpx;
-  height: 40rpx;
+  width: 48rpx;
+  height: 48rpx;
 }
 
 .ticket-detail-page__cover-shell {
@@ -291,7 +292,7 @@ function keepPrivate() {
   color: var(--anima-text-muted);
   font-family: var(--anima-font-display);
   font-size: 24rpx;
-  line-height: 35rpx;
+  line-height: 58rpx;
   letter-spacing: 1rpx;
   text-align: center;
 }
