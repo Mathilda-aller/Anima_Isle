@@ -161,12 +161,13 @@ function keepPrivate() {
         </view>
 
         <view class="ticket-detail-page__cover-shell" hover-class="tap-hover" @click="openViewer">
+          <view class="ticket-detail-page__halo" />
           <view class="ticket-detail-page__aura" />
           <view class="ticket-detail-page__cover">
             <image
               class="ticket-detail-page__image"
               :src="ticketDetail.image_url"
-              mode="aspectFill"
+              mode="scaleToFill"
               @load="handleImageLoad"
               @error="handleImageError"
             />
@@ -308,6 +309,21 @@ function keepPrivate() {
   justify-content: center;
 }
 
+.ticket-detail-page__halo {
+  position: absolute;
+  left: 50%;
+  top: 35%;
+  width: 544rpx;
+  height: 544rpx;
+  border-radius: 50%;
+  background: var(--anima-glow-ticket);
+  filter: blur(128rpx);
+  mix-blend-mode: screen;
+  opacity: 0.92;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+
 .ticket-detail-page__aura {
   position: absolute;
   inset: 4% 8% 36%;
@@ -321,8 +337,6 @@ function keepPrivate() {
   position: relative;
   width: 100%;
   height: 100%;
-  overflow: hidden;
-  border-radius: 42rpx;
   box-shadow: 8rpx 8rpx 48rpx rgba(0, 0, 0, 0.25);
 }
 
