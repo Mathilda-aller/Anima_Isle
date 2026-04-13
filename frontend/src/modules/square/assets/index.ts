@@ -11,6 +11,8 @@ import lagoonIslandMid from "./icons/3627b2bc-6fcf-4a37-be5a-453664a8d354.svg";
 import islandSceneMist from "./icons/05805900-7396-474e-be8e-6326c1d004ee.png";
 import islandTagAvatar from "./icons/f6a70b5f-a9c4-431f-8d7f-fecdc4e005e2.png";
 import lagoonIslandCore from "./icons/fa1cdb11-33f6-47b7-9074-0a1cdbf144b9.svg";
+import hugClose from "./icons/hug-close.svg";
+import hugHeart from "./icons/hug-heart.svg";
 import sproutIslandSpark from "./icons/5c351975-8521-4d00-a190-125727c60832.svg";
 import sproutIslandGlow from "./icons/32bca127-b854-4e5c-8466-11d5ae18b656.svg";
 import mistIslandBase from "./icons/9be73d38-ef7e-4ba9-b9f6-b0d6a1c3b23b.svg";
@@ -31,6 +33,8 @@ export const SQUARE_ASSETS = {
     emberIslandBase,
     emberIslandCore,
     emberIslandMid,
+    hugClose,
+    hugHeart,
     lagoonIslandBase,
     lagoonIslandCore,
     lagoonIslandMid,

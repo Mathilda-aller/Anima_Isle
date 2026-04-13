@@ -2,7 +2,7 @@
 import os
 import json
 import logging
-from typing import List, Dict
+from typing import List, Dict, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -91,6 +91,30 @@ def get_island_stars(
 
     stars = crud.get_public_tickets_by_island(db, island_key, limit=50)
     return stars
+
+
+@router.get("/island-tags/{island_key}", response_model=List[schemas.IslandTagDTO])
+def get_island_tags(
+    island_key: str,
+    limit: int,
+    preferred_tag: Optional[str] = None,
+    preferred_ticket_uid: Optional[str] = None,
+    db: Session = Depends(deps.get_db),
+    current_user: models.User = Depends(deps.get_current_user),
+):
+    if island_key not in ISLAND_KEYS:
+        raise HTTPException(status_code=404, detail="Island not found")
+
+    if limit <= 0:
+        return []
+
+    return crud.get_public_island_tags(
+        db,
+        island_key=island_key,
+        limit=limit,
+        preferred_tag=preferred_tag,
+        preferred_ticket_uid=preferred_ticket_uid,
+    )
 
 # ================= 4. 互动: 抱抱/查看 (/interact) =================
 @router.post("/interact/{ticket_uid}")

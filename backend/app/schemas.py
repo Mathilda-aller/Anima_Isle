@@ -131,6 +131,8 @@ class TicketDTO(BaseModel):
     island_category: str
     selected_tags: List[str] = []
     selected_image_id: Optional[str] = None
+    hug_count: int
+    view_count: int
     is_public: bool
     created_at: datetime
     
@@ -199,3 +201,9 @@ class MapStarDTO(BaseModel):
 
     # 增加这个配置允许从 ORM 读取
     model_config = ConfigDict(from_attributes=True)
+
+
+class IslandTagDTO(BaseModel):
+    tag: str
+    ticket_uid: str
+    from_user_selection: bool = False

@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import { fetchIslandMap, interactWithCard, publishTicket, suggestTags } from "@/modules/square/api/square";
+import { fetchIslandMap, fetchIslandTags, interactWithCard, publishTicket, suggestTags } from "@/modules/square/api/square";
 import type { SquareState } from "@/modules/square/types/square";
 import { logEvent } from "@/infrastructure/http/tracking";
 
@@ -17,6 +17,7 @@ export const useSquareStore = defineStore("square", {
     suggestedTags: [],
     selectedTags: [],
     suggestedTagsByTicket: {},
+    islandTagsByIsland: {},
     mapStars: [],
     currentIsland: "ISLAND_1",
     loading: false,
@@ -77,6 +78,27 @@ export const useSquareStore = defineStore("square", {
       try {
         this.currentIsland = islandKey;
         this.mapStars = await fetchIslandMap(islandKey);
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    async fetchIslandTagEntries(
+      islandKey: string,
+      payload: {
+        limit: number;
+        preferred_tag?: string;
+        preferred_ticket_uid?: string;
+      },
+    ) {
+      this.loading = true;
+      try {
+        const tags = await fetchIslandTags(islandKey, payload);
+        this.islandTagsByIsland = {
+          ...this.islandTagsByIsland,
+          [islandKey]: tags,
+        };
+        return tags;
       } finally {
         this.loading = false;
       }

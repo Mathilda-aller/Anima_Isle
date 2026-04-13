@@ -8,6 +8,12 @@ export interface MapStarDTO {
   created_at: string;
 }
 
+export interface IslandTagDTO {
+  tag: string;
+  ticket_uid: string;
+  from_user_selection: boolean;
+}
+
 export interface CardPublishRequest {
   ticket_uid: string;
   selected_tags: string[];
@@ -17,6 +23,7 @@ export interface SquareState {
   suggestedTags: string[];
   selectedTags: string[];
   suggestedTagsByTicket: Record<string, string[]>;
+  islandTagsByIsland: Record<string, IslandTagDTO[]>;
   mapStars: MapStarDTO[];
   currentIsland: string;
   loading: boolean;

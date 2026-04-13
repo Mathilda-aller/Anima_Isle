@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { onLoad } from "@dcloudio/uni-app";
+import { useAuthStore } from "@/modules/auth/store/auth";
 import IslandTagChip from "@/modules/square/components/IslandTagChip.vue";
 import { SQUARE_ASSETS } from "@/modules/square/assets";
 import {
@@ -15,20 +16,18 @@ import { useTicketStore } from "@/modules/ticket/store/ticket";
 import { ROUTES } from "@/shared/constants/routes";
 import { SHARED_ASSETS } from "@/shared/assets";
 import DarkBackgroundLayer from "@/shared/components/DarkBackgroundLayer.vue";
+import { toLogin } from "@/shared/utils/navigation";
 
 type TagBubbleViewModel = {
   id: string;
   label: string;
+  ticketUid: string;
   style: SceneStyle;
   highlighted: boolean;
   fromUserSelection: boolean;
 };
 
-type IslandTagRequest = {
-  island_id: IslandId;
-  selected_tags: string[];
-};
-
+const authStore = useAuthStore();
 const squareStore = useSquareStore();
 const ticketStore = useTicketStore();
 const islandId = ref<IslandId>(DEFAULT_ISLAND_ID);
@@ -70,33 +69,31 @@ const selectedOutlineLayers = computed(() =>
 const selectedIslandLayers = computed(() =>
   SCENE_LAYERS.filter((layer) => focusLayerKeys.value.has(layer.key)),
 );
-const islandTagRequest = computed<IslandTagRequest>(() => ({
-  island_id: islandId.value,
-  selected_tags: ticketDetail.value?.selected_tags?.length ? ticketDetail.value.selected_tags : squareStore.selectedTags,
-}));
+const islandTagEntries = computed(() => squareStore.islandTagsByIsland[islandConfig.value.backendIslandKey] ?? []);
 
 const islandBubbles = computed<TagBubbleViewModel[]>(() => {
   const slots = islandConfig.value.tagSlots;
-  const selectedTagSource = ticketDetail.value?.selected_tags?.length ? ticketDetail.value.selected_tags : squareStore.selectedTags;
-  const normalizedUserTags = selectedTagSource
-    .map((tag) => (tag.startsWith("#") ? tag : `#${tag}`))
-    .filter(Boolean);
-  const mergedLabels = Array.from(new Set([...normalizedUserTags, ...islandConfig.value.mockTags]));
-
-  return slots.map((slot, index) => ({
+  return islandTagEntries.value.slice(0, slots.length).map((tagEntry, index) => ({
     id: `bubble-${index}`,
-    label: mergedLabels[index] ?? islandConfig.value.mockTags[index] ?? "#心情",
+    label: tagEntry.tag,
+    ticketUid: tagEntry.ticket_uid,
     style: {
-      left: slot.left,
-      top: slot.top,
-      width: slot.width,
+      left: slots[index].left,
+      top: slots[index].top,
+      width: slots[index].width,
     },
-    highlighted: Boolean(slot.highlighted),
-    fromUserSelection: normalizedUserTags.includes(mergedLabels[index] ?? ""),
+    highlighted: Boolean(slots[index].highlighted),
+    fromUserSelection: tagEntry.from_user_selection,
   }));
 });
 
 onLoad(async (query) => {
+  authStore.hydrateFromStorage();
+  if (!authStore.isAuthed) {
+    toLogin();
+    return;
+  }
+
   const incomingIslandId = query?.island_id;
   if (typeof incomingIslandId === "string" && incomingIslandId in ISLAND_CONFIGS) {
     islandId.value = incomingIslandId as IslandId;
@@ -114,10 +111,25 @@ onLoad(async (query) => {
     await ticketStore.fetchDetail(ticketUid.value);
   }
 
+  await loadIslandTags();
+
   setTimeout(() => {
     sceneReady.value = true;
   }, 50);
 });
+
+async function loadIslandTags() {
+  const preferredTag =
+    entry.value === "publish"
+      ? (ticketDetail.value?.selected_tags?.[0] ?? squareStore.selectedTags[0])
+      : undefined;
+
+  await squareStore.fetchIslandTagEntries(islandConfig.value.backendIslandKey, {
+    limit: islandConfig.value.tagSlots.length,
+    preferred_tag: preferredTag,
+    preferred_ticket_uid: entry.value === "publish" ? ticketUid.value || undefined : undefined,
+  });
+}
 
 function goBack() {
   const pages = getCurrentPages();
@@ -129,17 +141,12 @@ function goBack() {
   uni.reLaunch({ url: ROUTES.SQUARE_MAP });
 }
 
-function openBubble(label: string) {
-  const requestPayload = islandTagRequest.value;
-
-  uni.showToast({
-    title: `${label} 接口预留中`,
-    icon: "none",
-  });
-
-  console.info("square island tag click placeholder", {
-    ...requestPayload,
-    tag: label,
+function openBubble(bubble: TagBubbleViewModel) {
+  uni.navigateTo({
+    url:
+      `${ROUTES.SQUARE_HUG}?ticket_uid=${encodeURIComponent(bubble.ticketUid)}` +
+      `&tag=${encodeURIComponent(bubble.label)}` +
+      `&island_id=${encodeURIComponent(islandId.value)}`,
   });
 }
 </script>
@@ -216,7 +223,7 @@ function openBubble(label: string) {
           }"
           :style="bubble.style"
           hover-class="square-island-page__bubble--hover"
-          @click="openBubble(bubble.label)"
+          @click="openBubble(bubble)"
         >
           <IslandTagChip :label="bubble.label" :avatar-src="SQUARE_ASSETS.images.islandTagAvatar" />
         </view>

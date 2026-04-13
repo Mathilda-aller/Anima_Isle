@@ -1,5 +1,5 @@
 import { request } from "@/infrastructure/http/request";
-import type { CardPublishRequest, MapStarDTO } from "@/modules/square/types/square";
+import type { CardPublishRequest, IslandTagDTO, MapStarDTO } from "@/modules/square/types/square";
 import type { TicketDTO } from "@/modules/ticket/types/ticket";
 
 export function suggestTags(ticketUid: string) {
@@ -23,6 +23,21 @@ export function fetchIslandMap(islandKey: string) {
   return request<MapStarDTO[]>({
     path: `/square/map/${islandKey}`,
     method: "GET",
+  });
+}
+
+export function fetchIslandTags(
+  islandKey: string,
+  payload: {
+    limit: number;
+    preferred_tag?: string;
+    preferred_ticket_uid?: string;
+  },
+) {
+  return request<IslandTagDTO[]>({
+    path: `/square/island-tags/${islandKey}`,
+    method: "GET",
+    query: payload,
   });
 }
 

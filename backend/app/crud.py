@@ -1,4 +1,5 @@
 # app/crud.py
+import random
 from sqlalchemy.orm import Session
 from sqlalchemy import desc, func
 from app import models, schemas
@@ -337,6 +338,70 @@ def get_public_tickets_by_island(db: Session, island_key: str, limit: int = 50):
              .filter(models.Ticket.island_category == island_key)\
              .order_by(desc(models.Ticket.created_at))\
              .limit(limit).all()
+
+
+def get_public_island_tags(
+    db: Session,
+    island_key: str,
+    limit: int,
+    preferred_tag: Optional[str] = None,
+    preferred_ticket_uid: Optional[str] = None,
+):
+    tickets = (
+        db.query(models.Ticket)
+        .filter(models.Ticket.is_public == True)
+        .filter(models.Ticket.island_category == island_key)
+        .order_by(desc(models.Ticket.created_at), desc(models.Ticket.id))
+        .all()
+    )
+
+    tag_to_tickets: dict[str, list[models.Ticket]] = {}
+    for ticket in tickets:
+        for raw_tag in ticket.selected_tags or []:
+            normalized_tag = str(raw_tag).strip()
+            if not normalized_tag:
+                continue
+            if not normalized_tag.startswith("#"):
+                normalized_tag = f"#{normalized_tag}"
+            tag_to_tickets.setdefault(normalized_tag, []).append(ticket)
+
+    if not tag_to_tickets:
+        return []
+
+    ordered_tags = list(tag_to_tickets.keys())
+    normalized_preferred_tag = None
+    if preferred_tag:
+        normalized_preferred_tag = preferred_tag if preferred_tag.startswith("#") else f"#{preferred_tag}"
+
+    selected_tags: list[str] = []
+    if normalized_preferred_tag and normalized_preferred_tag in tag_to_tickets:
+        selected_tags.append(normalized_preferred_tag)
+
+    for tag in ordered_tags:
+        if tag in selected_tags:
+            continue
+        selected_tags.append(tag)
+        if len(selected_tags) >= limit:
+            break
+
+    results: list[schemas.IslandTagDTO] = []
+    for tag in selected_tags[:limit]:
+        candidates = tag_to_tickets[tag]
+        if preferred_ticket_uid and tag == normalized_preferred_tag:
+            preferred_ticket = next((ticket for ticket in candidates if ticket.ticket_uid == preferred_ticket_uid), None)
+            selected_ticket = preferred_ticket or random.choice(candidates)
+        else:
+            selected_ticket = random.choice(candidates)
+
+        results.append(
+            schemas.IslandTagDTO(
+                tag=tag,
+                ticket_uid=selected_ticket.ticket_uid,
+                from_user_selection=tag == normalized_preferred_tag,
+            )
+        )
+
+    return results
 
 def increment_interaction(db: Session, ticket_uid: str, type: str):
     """点赞或抱抱"""

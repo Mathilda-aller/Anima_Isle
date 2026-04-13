@@ -13,6 +13,7 @@ export const ROUTES = {
   TICKET_VIEWER: "/modules/ticket/pages/viewer/index",
   SQUARE_MAP: "/modules/square/pages/map/index",
   SQUARE_ISLAND: "/modules/square/pages/island/index",
+  SQUARE_HUG: "/modules/square/pages/hug/index",
   SQUARE_PUBLISH: "/modules/square/pages/publish/index",
   AID: "/modules/user/pages/aid/index",
 } as const;

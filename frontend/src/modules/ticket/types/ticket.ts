@@ -7,6 +7,8 @@ export interface TicketDTO {
   island_category: string;
   selected_tags: string[];
   selected_image_id?: string;
+  hug_count: number;
+  view_count: number;
   is_public: boolean;
   created_at: string;
 }

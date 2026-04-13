@@ -85,6 +85,12 @@
       }
     },
     {
+      "path": "modules/square/pages/hug/index",
+      "style": {
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "modules/square/pages/publish/index",
       "style": {
         "navigationBarTitleText": "发送到岛屿"
