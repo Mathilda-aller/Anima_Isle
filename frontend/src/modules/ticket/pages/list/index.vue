@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { onReachBottom, onShow } from "@dcloudio/uni-app";
-import { TICKET_ASSETS } from "@/modules/ticket/assets";
 import { useAuthStore } from "@/modules/auth/store/auth";
 import TicketTimelineCard from "@/modules/ticket/components/TicketTimelineCard.vue";
 import { useTicketStore } from "@/modules/ticket/store/ticket";
@@ -57,20 +56,14 @@ function goBack() {
       </view>
 
       <view v-if="hasTimeline" class="ticket-list-page__timeline">
-        <template v-for="(item, index) in ticketStore.timeline" :key="item.ticket_uid">
-          <TicketTimelineCard
-            :item="item"
-            :align="index % 2 === 0 ? 'left' : 'right'"
-            @open="openViewer"
-          />
-          <view v-if="index !== ticketStore.timeline.length - 1" class="ticket-list-page__connector">
-            <image
-              class="ticket-list-page__connector-path"
-              :src="index % 2 === 0 ? TICKET_ASSETS.paths.vector25 : TICKET_ASSETS.paths.vector24"
-              mode="aspectFit"
-            />
-          </view>
-        </template>
+        <TicketTimelineCard
+          v-for="(item, index) in ticketStore.timeline"
+          :key="item.ticket_uid"
+          :item="item"
+          :align="index % 2 === 0 ? 'left' : 'right'"
+          :show-connector="index !== ticketStore.timeline.length - 1"
+          @open="openViewer"
+        />
       </view>
 
       <view v-else-if="!ticketStore.loading" class="ticket-list-page__state">
@@ -139,24 +132,7 @@ function goBack() {
   margin-right: auto;
   display: flex;
   flex-direction: column;
-  gap: 0;
-}
-
-.ticket-list-page__connector {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 548rpx;
-  margin-top: -44rpx;
-  margin-bottom: -36rpx;
-  pointer-events: none;
-}
-
-.ticket-list-page__connector-path {
-  width: 622rpx;
-  height: 548rpx;
-  opacity: 0.7;
+  gap: 32rpx;
 }
 
 .ticket-list-page__state,

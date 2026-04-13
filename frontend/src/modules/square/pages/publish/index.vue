@@ -16,8 +16,9 @@ interface BubbleLayout {
   id: string;
   tag: string;
   size: number;
+  left: number;
+  top: number;
   fontSize: number;
-  slot: string;
 }
 
 const authStore = useAuthStore();
@@ -60,43 +61,61 @@ function shuffle<T>(items: T[]) {
 
 function buildBubbleLayouts(tags: string[]) {
   const sizeRanges: Array<[number, number]> = [
-    [124, 136],
-    [136, 148],
-    [150, 166],
-    [170, 188],
-    [112, 126],
+    [108, 120],
+    [122, 136],
+    [138, 152],
+    [154, 168],
+    [172, 186],
   ];
-  const slots = ["top-left", "top-right", "center", "right-middle", "bottom-left"];
   const shuffledSizes = shuffle(sizeRanges).map(([min, max]) => Math.round(sampleBetween(min, max)));
+  const placements: BubbleLayout[] = [];
 
-  bubbleLayouts.value = tags.map((tag, index) => {
-    const size = shuffledSizes[index] ?? 144;
-    return {
+  tags.forEach((tag, index) => {
+    const size = shuffledSizes[index] ?? 132;
+    const radiusX = (size / 620) * 52;
+    const radiusY = (size / 430) * 52;
+
+    let left = 50;
+    let top = 50;
+    let placed = false;
+
+    for (let attempt = 0; attempt < 60; attempt += 1) {
+      const nextLeft = sampleBetween(12, 88);
+      const nextTop = sampleBetween(14, 84);
+      const overlaps = placements.some((item) => {
+        const dx = Math.abs(item.left - nextLeft);
+        const dy = Math.abs(item.top - nextTop);
+        const minDx = radiusX + (item.size / 620) * 30;
+        const minDy = radiusY + (item.size / 430) * 30;
+        return dx < minDx && dy < minDy;
+      });
+
+      if (!overlaps) {
+        left = nextLeft;
+        top = nextTop;
+        placed = true;
+        break;
+      }
+    }
+
+    if (!placed && placements.length) {
+      const anchor = placements[index % placements.length];
+      left = Math.min(84, Math.max(16, anchor.left + sampleBetween(-18, 18)));
+      top = Math.min(82, Math.max(16, anchor.top + sampleBetween(-16, 16)));
+    }
+
+    placements.push({
       id: `${tag}-${index}`,
       tag,
       size,
-      fontSize: size >= 170 ? 24 : size >= 148 ? 22 : 20,
-      slot: slots[index % slots.length],
-    };
+      left,
+      top,
+      fontSize: size >= 170 ? 24 : size >= 145 ? 22 : 20,
+    });
   });
-}
 
-const pageStyle = computed(() => ({
-  "--publish-title-font-size": "32rpx",
-  "--publish-title-line-height": "56rpx",
-  "--publish-title-letter-spacing": "1rpx",
-  "--publish-title-image-gap": "40rpx",
-  "--publish-cover-width": "382rpx",
-  "--publish-cover-radius": "42rpx",
-  "--publish-bubble-section-gap": "28rpx",
-  "--publish-bubble-gap-x": "40rpx",
-  "--publish-bubble-gap-y": "30rpx",
-  "--publish-action-gap": "40rpx",
-  "--publish-reroll-width": "100rpx",
-  "--publish-reroll-icon-size": "48rpx",
-  "--publish-reroll-font-size": "24rpx",
-  "--publish-reroll-line-height": "56rpx",
-}));
+  bubbleLayouts.value = placements;
+}
 
 async function loadPageData(forceRefreshTags = false) {
   if (!ticketUid.value) return;
@@ -178,60 +197,55 @@ function goBack() {
           </view>
         </view>
 
-        <view class="publish-page__content" :style="pageStyle">
-          <text class="publish-page__title">选择一个共鸣tag，让更多人看见你的情绪</text>
+        <text class="publish-page__title">选择一个共鸣tag，让更多人看见你的情绪</text>
 
-          <view class="publish-page__cover-shell">
-            <view class="publish-page__cover-aura" />
-            <view class="publish-page__cover">
-              <image class="publish-page__cover-image" :src="ticketDetail.image_url" mode="aspectFit" />
-            </view>
+        <view class="publish-page__cover-shell">
+          <view class="publish-page__cover-aura" />
+          <view class="publish-page__cover">
+            <image class="publish-page__cover-image" :src="ticketDetail.image_url" mode="aspectFill" />
+          </view>
+        </view>
+
+        <view class="publish-page__bubble-field">
+          <view
+            v-for="bubble in bubbleLayouts"
+            :key="bubble.id"
+            class="publish-page__bubble"
+            :class="{ 'publish-page__bubble--selected': squareStore.selectedTags.includes(bubble.tag) }"
+            :style="{
+              width: `${bubble.size}rpx`,
+              height: `${bubble.size}rpx`,
+              left: `${bubble.left}%`,
+              top: `${bubble.top}%`,
+            }"
+            hover-class="publish-page__bubble--hover"
+            @click="toggle(bubble.tag)"
+          >
+            <text class="publish-page__bubble-label" :style="{ fontSize: `${bubble.fontSize}rpx` }">
+              {{ bubble.tag }}
+            </text>
+          </view>
+        </view>
+
+        <view class="publish-page__actions">
+          <view
+            class="publish-page__publish-action"
+            :class="{ 'publish-page__publish-action--disabled': loading }"
+            hover-class="publish-page__action-hover"
+            @click="doPublish"
+          >
+            <image class="publish-page__publish-icon" :src="TICKET_ASSETS.icons.publish" mode="aspectFit" />
+            <text class="publish-page__publish-label">{{ loading ? "寄送中" : "寄至群岛" }}</text>
           </view>
 
-          <view class="publish-page__bubble-field">
-            <view
-              v-for="bubble in bubbleLayouts"
-              :key="bubble.id"
-              class="publish-page__bubble-slot"
-              :class="`publish-page__bubble-slot--${bubble.slot}`"
-            >
-              <view
-                class="publish-page__bubble"
-                :class="{ 'publish-page__bubble--selected': squareStore.selectedTags.includes(bubble.tag) }"
-                :style="{
-                  width: `${bubble.size}rpx`,
-                  height: `${bubble.size}rpx`,
-                }"
-                hover-class="publish-page__bubble--hover"
-                @click="toggle(bubble.tag)"
-              >
-                <text class="publish-page__bubble-label" :style="{ fontSize: `${bubble.fontSize}rpx` }">
-                  {{ bubble.tag }}
-                </text>
-              </view>
-            </view>
-          </view>
-
-          <view class="publish-page__actions">
-            <view
-              class="publish-page__publish-action"
-              :class="{ 'publish-page__publish-action--disabled': loading }"
-              hover-class="publish-page__action-hover"
-              @click="doPublish"
-            >
-              <image class="publish-page__publish-icon" :src="TICKET_ASSETS.icons.publish" mode="aspectFit" />
-              <text class="publish-page__publish-label">{{ loading ? "寄送中" : "寄至群岛" }}</text>
-            </view>
-
-            <view
-              class="publish-page__reroll"
-              :class="{ 'publish-page__reroll--disabled': loading }"
-              hover-class="publish-page__reroll--hover"
-              @click="regenerateTags"
-            >
-              <image class="publish-page__reroll-icon" :src="CHAT_ASSETS.icons.ticketRerollRefresh" mode="aspectFit" />
-              <text class="publish-page__reroll-text">重新生成</text>
-            </view>
+          <view
+            class="publish-page__reroll"
+            :class="{ 'publish-page__reroll--disabled': loading }"
+            hover-class="publish-page__reroll--hover"
+            @click="regenerateTags"
+          >
+            <image class="publish-page__reroll-icon" :src="CHAT_ASSETS.icons.ticketRerollRefresh" mode="aspectFit" />
+            <text class="publish-page__reroll-text">重新生成</text>
           </view>
         </view>
       </view>
@@ -240,6 +254,13 @@ function goBack() {
 </template>
 
 <style scoped lang="scss">
+.publish-page__inner {
+  --publish-title-top: 15.1%;
+  --publish-cover-top: 22.6%;
+  --publish-actions-top: 87.25%;
+  --publish-action-gap: 40rpx;
+}
+
 .publish-page__inner {
   position: relative;
   min-height: 100vh;
@@ -251,14 +272,11 @@ function goBack() {
 }
 
 .publish-page__artboard {
+  position: relative;
   width: min(100%, calc((100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom)) * 402 / 874));
   max-width: 804rpx;
   min-height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
   aspect-ratio: 402 / 874;
-  display: flex;
-  flex-direction: column;
-  padding: 44rpx 32rpx 36rpx;
-  gap: 32rpx;
 }
 
 .publish-page__state {
@@ -278,10 +296,15 @@ function goBack() {
 }
 
 .publish-page__topbar {
-  width: 100%;
+  position: absolute;
+  top: 5.49%;
+  left: 1%;
+  width: 97.95%;
+  padding: 0 4%;
   display: flex;
   align-items: center;
   justify-content: flex-start;
+  padding: calc(44rpx + env(safe-area-inset-top)) 32rpx 0;
   z-index: 4;
 }
 
@@ -300,36 +323,31 @@ function goBack() {
   height: 48rpx;
 }
 
-.publish-page__content {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
 .publish-page__title {
-  width: 100%;
+  position: absolute;
+  left: 12.2%;
+  top: var(--publish-title-top);
+  width: 79.4%;
   color: var(--anima-text-main);
   font-family: var(--anima-font-display);
-  font-size: var(--publish-title-font-size);
-  line-height: var(--publish-title-line-height);
-  letter-spacing: var(--publish-title-letter-spacing);
-  text-align: center;
+  font-size: 32rpx;
+  line-height: 56rpx;
+  letter-spacing: 1rpx;
   white-space: nowrap;
   word-break: keep-all;
+  text-align: center;
   text-shadow: 0 0 8rpx rgba(255, 255, 255, 0.5);
 }
 
 .publish-page__cover-shell {
-  position: relative;
-  width: var(--publish-cover-width);
-  aspect-ratio: 381 / 265;
+  position: absolute;
+  left: 26.55%;
+  top: var(--publish-cover-top);
+  width: 47.41%;
+  height: 30.32%;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-top: var(--publish-title-image-gap);
-  flex-shrink: 0;
 }
 
 .publish-page__cover-aura {
@@ -345,74 +363,27 @@ function goBack() {
   position: relative;
   width: 100%;
   height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   overflow: hidden;
-  border-radius: var(--publish-cover-radius);
-  background: rgba(21, 31, 53, 0.18);
+  border-radius: 42rpx;
   box-shadow: 8rpx 8rpx 48rpx rgba(0, 0, 0, 0.25);
 }
 
 .publish-page__cover-image {
   width: 100%;
   height: 100%;
-  flex-shrink: 0;
 }
 
 .publish-page__bubble-field {
-  flex: 1 1 auto;
-  min-height: 0;
-  width: 100%;
-  display: grid;
-  grid-template-columns: 1.05fr 1.24fr 1.05fr;
-  grid-template-rows: 1fr 1.08fr 1fr;
-  gap: var(--publish-bubble-gap-y) var(--publish-bubble-gap-x);
-  align-items: center;
-  margin-top: var(--publish-bubble-section-gap);
-  overflow: hidden;
-}
-
-.publish-page__bubble-slot {
-  display: flex;
-}
-
-.publish-page__bubble-slot--top-left {
-  grid-column: 1;
-  grid-row: 1;
-  align-self: start;
-  justify-content: flex-start;
-}
-
-.publish-page__bubble-slot--top-right {
-  grid-column: 3;
-  grid-row: 1;
-  align-self: start;
-  justify-content: flex-end;
-}
-
-.publish-page__bubble-slot--center {
-  grid-column: 2;
-  grid-row: 2;
-  align-self: center;
-  justify-content: center;
-}
-
-.publish-page__bubble-slot--right-middle {
-  grid-column: 3;
-  grid-row: 2;
-  align-self: center;
-  justify-content: center;
-}
-
-.publish-page__bubble-slot--bottom-left {
-  grid-column: 1;
-  grid-row: 3;
-  align-self: end;
-  justify-content: flex-start;
+  position: absolute;
+  left: 6%;
+  top: 54%;
+  width: 88%;
+  height: 28%;
 }
 
 .publish-page__bubble {
+  position: absolute;
+  transform: translate(-50%, -50%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -430,7 +401,7 @@ function goBack() {
 
 .publish-page__bubble--hover {
   opacity: 0.9;
-  transform: scale(1.03);
+  transform: translate(-50%, -50%) scale(1.03);
 }
 
 .publish-page__bubble-label {
@@ -440,22 +411,21 @@ function goBack() {
   line-height: 1.35;
   letter-spacing: 1rpx;
   text-align: center;
-  white-space: nowrap;
-  word-break: keep-all;
   text-shadow: 0 0 8rpx rgba(255, 255, 255, 0.37);
 }
 
 .publish-page__actions {
-  width: 100%;
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: start;
-  padding-top: 24rpx;
-  flex-shrink: 0;
+  position: absolute;
+  left: 50%;
+  top: var(--publish-actions-top);
+  transform: translateX(-50%);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: var(--publish-action-gap);
 }
 
 .publish-page__publish-action {
-  grid-column: 2;
   width: 198rpx;
   height: 64rpx;
   display: flex;
@@ -490,28 +460,24 @@ function goBack() {
 }
 
 .publish-page__reroll {
-  grid-column: 3;
-  justify-self: start;
-  margin-left: var(--publish-action-gap);
-  width: var(--publish-reroll-width);
+  width: 100rpx;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0;
-  flex-shrink: 0;
   transition: opacity 180ms ease, transform 180ms ease;
 }
 
 .publish-page__reroll-icon {
-  width: var(--publish-reroll-icon-size);
-  height: var(--publish-reroll-icon-size);
+  width: 46rpx;
+  height: 46rpx;
 }
 
 .publish-page__reroll-text {
   color: var(--anima-text-dim);
   font-family: var(--anima-font-display);
-  font-size: var(--publish-reroll-font-size);
-  line-height: var(--publish-reroll-line-height);
+  font-size: 24rpx;
+  line-height: 56rpx;
   letter-spacing: 1rpx;
   white-space: nowrap;
   word-break: keep-all;

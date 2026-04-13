@@ -7,9 +7,11 @@ const props = withDefaults(
   defineProps<{
     item: TicketDTO;
     align?: "left" | "right";
+    showConnector?: boolean;
   }>(),
   {
     align: "left",
+    showConnector: true,
   },
 );
 
@@ -57,6 +59,14 @@ const monthDayLabel = computed(() => {
     </view>
 
     <image class="ticket-timeline-card__cloud" :src="TICKET_ASSETS.icons.timelineCloud" mode="aspectFit" />
+
+    <image
+      v-if="showConnector"
+      class="ticket-timeline-card__connector"
+      :class="`ticket-timeline-card__connector--${align}`"
+      :src="align === 'left' ? TICKET_ASSETS.icons.timelineCurveRight : TICKET_ASSETS.icons.timelineCurveLeft"
+      mode="scaleToFill"
+    />
   </view>
 </template>
 
@@ -154,6 +164,22 @@ const monthDayLabel = computed(() => {
 
 .ticket-timeline-card--right .ticket-timeline-card__cloud {
   left: 0;
+}
+
+.ticket-timeline-card__connector {
+  position: absolute;
+  top: 230rpx;
+  width: 138rpx;
+  height: 258rpx;
+  opacity: 0.9;
+}
+
+.ticket-timeline-card__connector--left {
+  right: 14rpx;
+}
+
+.ticket-timeline-card__connector--right {
+  left: 14rpx;
 }
 
 .ticket-timeline-card__card--hover {
