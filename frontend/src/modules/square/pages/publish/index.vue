@@ -16,9 +16,8 @@ interface BubbleLayout {
   id: string;
   tag: string;
   size: number;
-  left: number;
-  top: number;
   fontSize: number;
+  slot: string;
 }
 
 const authStore = useAuthStore();
@@ -46,10 +45,6 @@ const displayedTags = computed(() => {
   return result.slice(0, 5);
 });
 
-function sampleBetween(min: number, max: number) {
-  return min + Math.random() * (max - min);
-}
-
 function shuffle<T>(items: T[]) {
   const cloned = [...items];
   for (let index = cloned.length - 1; index > 0; index -= 1) {
@@ -61,61 +56,46 @@ function shuffle<T>(items: T[]) {
 
 function buildBubbleLayouts(tags: string[]) {
   const sizeRanges: Array<[number, number]> = [
-    [108, 120],
-    [122, 136],
-    [138, 152],
-    [154, 168],
-    [172, 186],
+    [128, 140],
+    [142, 156],
+    [160, 176],
+    [178, 196],
+    [118, 132],
   ];
+  const slots = ["top-left", "top-right", "center", "right-middle", "bottom-left"];
   const shuffledSizes = shuffle(sizeRanges).map(([min, max]) => Math.round(sampleBetween(min, max)));
-  const placements: BubbleLayout[] = [];
-
-  tags.forEach((tag, index) => {
-    const size = shuffledSizes[index] ?? 132;
-    const radiusX = (size / 620) * 52;
-    const radiusY = (size / 430) * 52;
-
-    let left = 50;
-    let top = 50;
-    let placed = false;
-
-    for (let attempt = 0; attempt < 60; attempt += 1) {
-      const nextLeft = sampleBetween(12, 88);
-      const nextTop = sampleBetween(14, 84);
-      const overlaps = placements.some((item) => {
-        const dx = Math.abs(item.left - nextLeft);
-        const dy = Math.abs(item.top - nextTop);
-        const minDx = radiusX + (item.size / 620) * 30;
-        const minDy = radiusY + (item.size / 430) * 30;
-        return dx < minDx && dy < minDy;
-      });
-
-      if (!overlaps) {
-        left = nextLeft;
-        top = nextTop;
-        placed = true;
-        break;
-      }
-    }
-
-    if (!placed && placements.length) {
-      const anchor = placements[index % placements.length];
-      left = Math.min(84, Math.max(16, anchor.left + sampleBetween(-18, 18)));
-      top = Math.min(82, Math.max(16, anchor.top + sampleBetween(-16, 16)));
-    }
-
-    placements.push({
+  bubbleLayouts.value = tags.map((tag, index) => {
+    const size = shuffledSizes[index] ?? 144;
+    return {
       id: `${tag}-${index}`,
       tag,
       size,
-      left,
-      top,
-      fontSize: size >= 170 ? 24 : size >= 145 ? 22 : 20,
-    });
+      fontSize: size >= 176 ? 24 : size >= 150 ? 22 : 20,
+      slot: slots[index % slots.length],
+    };
   });
-
-  bubbleLayouts.value = placements;
 }
+
+function sampleBetween(min: number, max: number) {
+  return min + Math.random() * (max - min);
+}
+
+const pageStyle = computed(() => ({
+  "--publish-title-font-size": "32rpx",
+  "--publish-title-line-height": "56rpx",
+  "--publish-title-letter-spacing": "1rpx",
+  "--publish-title-gap": "44rpx",
+  "--publish-cover-width": "382rpx",
+  "--publish-cover-radius": "42rpx",
+  "--publish-bubble-field-min-height": "412rpx",
+  "--publish-bubble-gap-x": "36rpx",
+  "--publish-bubble-gap-y": "28rpx",
+  "--publish-action-gap": "42rpx",
+  "--publish-reroll-width": "100rpx",
+  "--publish-reroll-icon-size": "48rpx",
+  "--publish-reroll-font-size": "24rpx",
+  "--publish-reroll-line-height": "56rpx",
+}));
 
 async function loadPageData(forceRefreshTags = false) {
   if (!ticketUid.value) return;
@@ -197,54 +177,61 @@ function goBack() {
           </view>
         </view>
 
-        <text class="publish-page__title">选择一个共鸣tag，让更多人看见你的情绪</text>
+        <view class="publish-page__content" :style="pageStyle">
+          <text class="publish-page__title">选择一个共鸣tag，让更多人看见你的情绪</text>
 
-        <view class="publish-page__cover-shell">
-          <view class="publish-page__cover-aura" />
-          <view class="publish-page__cover">
-            <image class="publish-page__cover-image" :src="ticketDetail.image_url" mode="aspectFill" />
+          <view class="publish-page__cover-shell">
+            <view class="publish-page__cover-aura" />
+            <view class="publish-page__cover">
+              <image class="publish-page__cover-image" :src="ticketDetail.image_url" mode="aspectFill" />
+            </view>
           </view>
-        </view>
 
-        <view class="publish-page__bubble-field">
-          <view
-            v-for="bubble in bubbleLayouts"
-            :key="bubble.id"
-            class="publish-page__bubble"
-            :class="{ 'publish-page__bubble--selected': squareStore.selectedTags.includes(bubble.tag) }"
-            :style="{
-              width: `${bubble.size}rpx`,
-              height: `${bubble.size}rpx`,
-              left: `${bubble.left}%`,
-              top: `${bubble.top}%`,
-            }"
-            hover-class="publish-page__bubble--hover"
-            @click="toggle(bubble.tag)"
-          >
-            <text class="publish-page__bubble-label" :style="{ fontSize: `${bubble.fontSize}rpx` }">
-              {{ bubble.tag }}
-            </text>
+          <view class="publish-page__bubble-field">
+            <view
+              v-for="bubble in bubbleLayouts"
+              :key="bubble.id"
+              class="publish-page__bubble-slot"
+              :class="`publish-page__bubble-slot--${bubble.slot}`"
+            >
+              <view
+                class="publish-page__bubble"
+                :class="{ 'publish-page__bubble--selected': squareStore.selectedTags.includes(bubble.tag) }"
+                :style="{
+                  width: `${bubble.size}rpx`,
+                  height: `${bubble.size}rpx`,
+                }"
+                hover-class="publish-page__bubble--hover"
+                @click="toggle(bubble.tag)"
+              >
+                <text class="publish-page__bubble-label" :style="{ fontSize: `${bubble.fontSize}rpx` }">
+                  {{ bubble.tag }}
+                </text>
+              </view>
+            </view>
           </view>
-        </view>
 
-        <view
-          class="publish-page__publish-action"
-          :class="{ 'publish-page__publish-action--disabled': loading }"
-          hover-class="publish-page__action-hover"
-          @click="doPublish"
-        >
-          <image class="publish-page__publish-icon" :src="TICKET_ASSETS.icons.publish" mode="aspectFit" />
-          <text class="publish-page__publish-label">{{ loading ? "寄送中" : "寄至群岛" }}</text>
-        </view>
+          <view class="publish-page__actions">
+            <view
+              class="publish-page__publish-action"
+              :class="{ 'publish-page__publish-action--disabled': loading }"
+              hover-class="publish-page__action-hover"
+              @click="doPublish"
+            >
+              <image class="publish-page__publish-icon" :src="TICKET_ASSETS.icons.publish" mode="aspectFit" />
+              <text class="publish-page__publish-label">{{ loading ? "寄送中" : "寄至群岛" }}</text>
+            </view>
 
-        <view
-          class="publish-page__reroll"
-          :class="{ 'publish-page__reroll--disabled': loading }"
-          hover-class="publish-page__reroll--hover"
-          @click="regenerateTags"
-        >
-          <image class="publish-page__reroll-icon" :src="CHAT_ASSETS.icons.ticketRerollRefresh" mode="aspectFit" />
-          <text class="publish-page__reroll-text">重新生成</text>
+            <view
+              class="publish-page__reroll"
+              :class="{ 'publish-page__reroll--disabled': loading }"
+              hover-class="publish-page__reroll--hover"
+              @click="regenerateTags"
+            >
+              <image class="publish-page__reroll-icon" :src="CHAT_ASSETS.icons.ticketRerollRefresh" mode="aspectFit" />
+              <text class="publish-page__reroll-text">重新生成</text>
+            </view>
+          </view>
         </view>
       </view>
     </view>
@@ -263,11 +250,14 @@ function goBack() {
 }
 
 .publish-page__artboard {
-  position: relative;
   width: min(100%, calc((100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom)) * 402 / 874));
   max-width: 804rpx;
   min-height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
   aspect-ratio: 402 / 874;
+  display: flex;
+  flex-direction: column;
+  padding: 48rpx 24rpx 40rpx;
+  gap: 32rpx;
 }
 
 .publish-page__state {
@@ -287,11 +277,7 @@ function goBack() {
 }
 
 .publish-page__topbar {
-  position: absolute;
-  top: 5.49%;
-  left: 1%;
-  width: 97.95%;
-  padding: 0 4%;
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: flex-start;
@@ -312,28 +298,35 @@ function goBack() {
   height: 40rpx;
 }
 
+.publish-page__content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 0;
+}
+
 .publish-page__title {
-  position: absolute;
-  left: 12.2%;
-  top: 15.1%;
-  width: 79.4%;
+  max-width: 100%;
   color: var(--anima-text-main);
   font-family: var(--anima-font-display);
-  font-size: 32rpx;
-  line-height: 56rpx;
-  letter-spacing: 1rpx;
+  font-size: var(--publish-title-font-size);
+  line-height: var(--publish-title-line-height);
+  letter-spacing: var(--publish-title-letter-spacing);
+  white-space: nowrap;
+  word-break: keep-all;
+  text-align: center;
   text-shadow: 0 0 8rpx rgba(255, 255, 255, 0.5);
 }
 
 .publish-page__cover-shell {
-  position: absolute;
-  left: 26.55%;
-  top: 21.51%;
-  width: 47.41%;
-  height: 30.32%;
+  position: relative;
+  width: var(--publish-cover-width);
+  aspect-ratio: 381 / 265;
   display: flex;
   align-items: center;
   justify-content: center;
+  margin-top: var(--publish-title-gap);
 }
 
 .publish-page__cover-aura {
@@ -350,7 +343,7 @@ function goBack() {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  border-radius: 42rpx;
+  border-radius: var(--publish-cover-radius);
   box-shadow: 8rpx 8rpx 48rpx rgba(0, 0, 0, 0.25);
 }
 
@@ -360,16 +353,58 @@ function goBack() {
 }
 
 .publish-page__bubble-field {
-  position: absolute;
-  left: 6%;
-  top: 54%;
-  width: 88%;
-  height: 28%;
+  flex: 1;
+  width: 100%;
+  min-height: var(--publish-bubble-field-min-height);
+  display: grid;
+  grid-template-columns: 1.05fr 1.28fr 1.05fr;
+  grid-template-rows: 1fr 1.1fr 1fr;
+  gap: var(--publish-bubble-gap-y) var(--publish-bubble-gap-x);
+  align-items: center;
+  margin-top: 36rpx;
+  padding: 8rpx 10rpx 0;
+}
+
+.publish-page__bubble-slot {
+  display: flex;
+}
+
+.publish-page__bubble-slot--top-left {
+  grid-column: 1;
+  grid-row: 1;
+  justify-content: flex-start;
+  align-self: start;
+}
+
+.publish-page__bubble-slot--top-right {
+  grid-column: 3;
+  grid-row: 1;
+  justify-content: flex-end;
+  align-self: start;
+}
+
+.publish-page__bubble-slot--center {
+  grid-column: 2;
+  grid-row: 2;
+  justify-content: center;
+  align-self: center;
+}
+
+.publish-page__bubble-slot--right-middle {
+  grid-column: 3;
+  grid-row: 2;
+  justify-content: flex-end;
+  align-self: center;
+}
+
+.publish-page__bubble-slot--bottom-left {
+  grid-column: 1;
+  grid-row: 3;
+  justify-content: flex-start;
+  align-self: end;
 }
 
 .publish-page__bubble {
-  position: absolute;
-  transform: translate(-50%, -50%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -387,7 +422,7 @@ function goBack() {
 
 .publish-page__bubble--hover {
   opacity: 0.9;
-  transform: translate(-50%, -50%) scale(1.03);
+  transform: scale(1.03);
 }
 
 .publish-page__bubble-label {
@@ -397,13 +432,22 @@ function goBack() {
   line-height: 1.35;
   letter-spacing: 1rpx;
   text-align: center;
+  white-space: nowrap;
+  word-break: keep-all;
   text-shadow: 0 0 8rpx rgba(255, 255, 255, 0.37);
 }
 
+.publish-page__actions {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: var(--publish-action-gap);
+  margin-top: auto;
+  padding-top: 24rpx;
+}
+
 .publish-page__publish-action {
-  position: absolute;
-  left: 37.07%;
-  top: 88.1%;
   width: 198rpx;
   height: 64rpx;
   display: flex;
@@ -438,28 +482,31 @@ function goBack() {
 }
 
 .publish-page__reroll {
-  position: absolute;
-  left: 66.67%;
-  top: 87.25%;
-  width: 96rpx;
+  width: var(--publish-reroll-width);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8rpx;
+  justify-content: flex-start;
+  gap: 0;
+  flex-shrink: 0;
   transition: opacity 180ms ease, transform 180ms ease;
 }
 
 .publish-page__reroll-icon {
-  width: 46rpx;
-  height: 46rpx;
+  width: var(--publish-reroll-icon-size);
+  height: var(--publish-reroll-icon-size);
 }
 
 .publish-page__reroll-text {
   color: var(--anima-text-dim);
   font-family: var(--anima-font-display);
-  font-size: 24rpx;
-  line-height: 40rpx;
+  font-size: var(--publish-reroll-font-size);
+  line-height: var(--publish-reroll-line-height);
   letter-spacing: 1rpx;
+  white-space: nowrap;
+  word-break: keep-all;
+  writing-mode: horizontal-tb;
+  text-align: center;
 }
 
 .publish-page__action-hover,
