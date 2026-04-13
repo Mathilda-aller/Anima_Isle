@@ -5,7 +5,7 @@ import { useAuthStore } from "@/modules/auth/store/auth";
 import { CHAT_ASSETS } from "@/modules/chat/assets";
 import { useChatStore } from "@/modules/chat/store/chat";
 import { ROUTES } from "@/shared/constants/routes";
-import { toLogin } from "@/shared/utils/navigation";
+import { navigateToWithFeedback, toLogin } from "@/shared/utils/navigation";
 import { ApiError } from "@/shared/types/http";
 import HomeNavItem from "@/modules/chat/components/HomeNavItem.vue";
 import HomeInputButton from "@/modules/chat/components/HomeInputButton.vue";
@@ -39,7 +39,7 @@ function normalizeError(error: unknown): string {
 
 function openComposer() {
   chatStore.resetSession();
-  uni.navigateTo({ url: `${ROUTES.CHAT_CABIN}?fresh=1` });
+  navigateToWithFeedback(`${ROUTES.CHAT_CABIN}?fresh=1`);
 }
 
 async function onConfirmTicket() {
@@ -58,26 +58,24 @@ function chooseCandidate(imageUrl: string) {
 
 function openVoiceInput() {
   chatStore.resetSession();
-  uni.navigateTo({ url: `${ROUTES.CHAT_VOICE}?fresh=1` });
+  navigateToWithFeedback(`${ROUTES.CHAT_VOICE}?fresh=1`);
 }
 
 function goMemoryLane() {
-  uni.navigateTo({ url: ROUTES.TICKET_LIST });
+  navigateToWithFeedback(ROUTES.TICKET_LIST);
 }
 
 function goResident() {
-  uni.navigateTo({ url: ROUTES.AUTH_RESIDENT });
+  navigateToWithFeedback(ROUTES.AUTH_RESIDENT);
 }
 
 function goSquare() {
-  uni.navigateTo({ url: ROUTES.SQUARE_MAP });
+  navigateToWithFeedback(ROUTES.SQUARE_MAP);
 }
 
 function goPublish() {
   if (!chatStore.ticketDraft) return;
-  uni.navigateTo({
-    url: `${ROUTES.SQUARE_PUBLISH}?ticket_uid=${encodeURIComponent(chatStore.ticketDraft.ticket_uid)}`,
-  });
+  navigateToWithFeedback(`${ROUTES.SQUARE_PUBLISH}?ticket_uid=${encodeURIComponent(chatStore.ticketDraft.ticket_uid)}`);
 }
 </script>
 
@@ -237,9 +235,19 @@ function goPublish() {
 
 .nav-orbit {
   position: absolute;
-  width: 15.06%;
+  width: 176rpx;
+  min-height: 168rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20rpx 18rpx;
+  border-radius: 999rpx;
   pointer-events: auto;
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  transition:
+    opacity 140ms ease,
+    transform 180ms cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 180ms ease,
+    box-shadow 180ms ease;
   font-size: 21rpx;
 }
 
@@ -257,6 +265,31 @@ function goPublish() {
 .nav-right {
   left: 82.08%;
   top: 61.86%;
+  transform: translateX(-50%);
+}
+
+.nav-orbit::before {
+  content: "";
+  position: absolute;
+  inset: 8rpx;
+  border-radius: inherit;
+  background: rgba(255, 255, 255, 0.02);
+  opacity: 0;
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.nav-orbit:active {
+  transform: translateY(2rpx) scale(0.97);
+}
+
+.nav-center:active,
+.nav-right:active {
+  transform: translateX(-50%) translateY(2rpx) scale(0.97);
+}
+
+.nav-orbit:active::before {
+  opacity: 1;
+  transform: scale(1.02);
 }
 
 .prompt {
@@ -304,7 +337,7 @@ function goPublish() {
 }
 
 .action-trigger {
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  transition: opacity 140ms ease, transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .ticket-result {
@@ -377,7 +410,7 @@ function goPublish() {
 
 .tap-hover {
   opacity: 0.82;
-  transform: translateY(-4rpx);
+  transform: scale(0.97);
 }
 
 .button-hover {

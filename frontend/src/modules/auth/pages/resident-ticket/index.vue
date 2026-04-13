@@ -7,7 +7,7 @@ import { useTicketStore } from "@/modules/ticket/store/ticket";
 import { TICKET_ASSETS } from "@/modules/ticket/assets";
 import DarkBackgroundLayer from "@/shared/components/DarkBackgroundLayer.vue";
 import { ROUTES } from "@/shared/constants/routes";
-import { toLogin } from "@/shared/utils/navigation";
+import { reLaunchWithFeedback, toLogin } from "@/shared/utils/navigation";
 
 const authStore = useAuthStore();
 const ticketStore = useTicketStore();
@@ -84,7 +84,7 @@ function goBack() {
     return;
   }
 
-  uni.reLaunch({ url: ROUTES.AUTH_RESIDENT });
+  reLaunchWithFeedback(ROUTES.AUTH_RESIDENT);
 }
 
 function shareTicket() {

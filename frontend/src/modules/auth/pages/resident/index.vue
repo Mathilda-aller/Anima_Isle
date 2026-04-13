@@ -8,7 +8,7 @@ import { useTicketStore } from "@/modules/ticket/store/ticket";
 import { ROUTES } from "@/shared/constants/routes";
 import { SHARED_ASSETS } from "@/shared/assets";
 import DarkBackgroundLayer from "@/shared/components/DarkBackgroundLayer.vue";
-import { toLogin } from "@/shared/utils/navigation";
+import { navigateToWithFeedback, toLogin } from "@/shared/utils/navigation";
 
 const authStore = useAuthStore();
 const ticketStore = useTicketStore();
@@ -66,7 +66,7 @@ function goBack() {
 function openIdentity() {
   const latestTicketUid = latestTicket.value?.ticket_uid;
   const query = latestTicketUid ? `?ticket_uid=${encodeURIComponent(latestTicketUid)}` : "";
-  uni.navigateTo({ url: `${ROUTES.AUTH_RESIDENT_TICKET}${query}` });
+  navigateToWithFeedback(`${ROUTES.AUTH_RESIDENT_TICKET}${query}`);
 }
 
 function openCommunityModal() {

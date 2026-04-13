@@ -15,20 +15,23 @@ defineProps<{
 <style scoped lang="scss">
 .nav-item {
   width: 100%;
+  min-width: 116rpx;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.18em;
+  justify-content: center;
+  gap: 10rpx;
+  pointer-events: none;
 }
 
 .nav-icon {
-  width: 70%;
+  width: 74rpx;
   aspect-ratio: 1;
   height: auto;
 }
 
 .nav-label {
-  font-size: 1em;
+  font-size: 24rpx;
   line-height: 1.15;
   color: var(--anima-text-main);
   text-shadow: var(--anima-shadow-title);
