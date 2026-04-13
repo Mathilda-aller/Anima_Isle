@@ -6,6 +6,7 @@ import { SQUARE_ASSETS } from "@/modules/square/assets";
 import { useSquareStore } from "@/modules/square/store/square";
 import { useTicketStore } from "@/modules/ticket/store/ticket";
 import { ROUTES } from "@/shared/constants/routes";
+import { SHARED_ASSETS } from "@/shared/assets";
 import DarkBackgroundLayer from "@/shared/components/DarkBackgroundLayer.vue";
 import { toLogin } from "@/shared/utils/navigation";
 
@@ -147,11 +148,11 @@ async function sendHug() {
     <DarkBackgroundLayer :texture-opacity="0.2" />
     <view class="square-hug-page__content">
       <view class="square-hug-page__topbar">
-        <view class="square-hug-page__top-action" hover-class="tap-hover" @click="closePage">
-          <image class="square-hug-page__close-icon" :src="SQUARE_ASSETS.icons.hugClose" mode="aspectFit" />
+        <view class="square-hug-page__back" hover-class="tap-hover" @click="closePage">
+          <image class="square-hug-page__back-icon" :src="SHARED_ASSETS.icons.exit" mode="aspectFit" />
         </view>
         <text class="square-hug-page__date">{{ createdAtLabel }}</text>
-        <view class="square-hug-page__top-action"></view>
+        <view class="square-hug-page__topbar-spacer"></view>
       </view>
 
       <template v-if="ticketDetail">
@@ -221,36 +222,42 @@ async function sendHug() {
   min-height: 100vh;
   flex-direction: column;
   align-items: center;
-  padding: calc(96rpx + env(safe-area-inset-top)) 40rpx calc(54rpx + env(safe-area-inset-bottom));
+  padding: 0 40rpx calc(54rpx + env(safe-area-inset-bottom));
 }
 
 .square-hug-page__topbar {
-  display: grid;
+  position: relative;
+  z-index: 2;
   width: 100%;
-  grid-template-columns: 48rpx 1fr 48rpx;
+  display: flex;
   align-items: center;
+  justify-content: space-between;
+  padding: calc(44rpx + env(safe-area-inset-top)) 32rpx 0;
 }
 
-.square-hug-page__top-action {
+.square-hug-page__back,
+.square-hug-page__topbar-spacer {
   display: flex;
   height: 48rpx;
   width: 48rpx;
+  flex: 0 0 48rpx;
   align-items: center;
   justify-content: center;
 }
 
-.square-hug-page__close-icon {
-  width: 24rpx;
-  height: 24rpx;
+.square-hug-page__back-icon {
+  width: 48rpx;
+  height: 48rpx;
 }
 
 .square-hug-page__date {
-  color: rgba(209, 213, 220, 0.92);
+  color: var(--anima-text-muted);
   font-family: var(--anima-font-display);
   font-size: 24rpx;
   line-height: 58rpx;
+  letter-spacing: 1rpx;
   text-align: center;
-  text-shadow: 0 0 8rpx rgba(255, 255, 255, 0.18);
+  text-shadow: var(--anima-shadow-title);
 }
 
 .square-hug-page__image-shell {
