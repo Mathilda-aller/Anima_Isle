@@ -170,9 +170,9 @@ const monthDayLabel = computed(() => {
 
 .ticket-timeline-card__connector {
   position: absolute;
-  top: 232rpx;
+  top: 250rpx;
   width: 622rpx;
-  height: 544rpx;
+  height: 526rpx;
   opacity: 0.9;
   z-index: 1;
   pointer-events: none;
@@ -215,8 +215,8 @@ const monthDayLabel = computed(() => {
   }
 
   .ticket-timeline-card__connector {
-    /* card(490) + gap(32) = 522rpx from cloud-to-cloud on small screens */
-    height: 522rpx;
+    /* from cloud-bottom(250) to next cloud-center: (490+32+232)-250 = 504rpx */
+    height: 504rpx;
   }
 }
 </style>
