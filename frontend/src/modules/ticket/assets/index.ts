@@ -12,6 +12,8 @@ import ticketShareIcon from "./icons/ticket-share.svg";
 import ticketTimelineCurveLeft from "./icons/ticket-timeline-curve-left.svg";
 import ticketTimelineCurveRight from "./icons/ticket-timeline-curve-right.svg";
 import ticketTimelineCloud from "./icons/ticket-timeline-cloud.svg";
+import ticketTimelinePathVector24 from "./paths/ticket-timeline-path-vector24.svg";
+import ticketTimelinePathVector25 from "./paths/ticket-timeline-path-vector25.svg";
 
 export const TICKET_ASSETS = {
   icons: {
@@ -29,6 +31,10 @@ export const TICKET_ASSETS = {
     timelineCurveLeft: ticketTimelineCurveLeft,
     timelineCurveRight: ticketTimelineCurveRight,
     timelineCloud: ticketTimelineCloud,
+  },
+  paths: {
+    vector24: ticketTimelinePathVector24,
+    vector25: ticketTimelinePathVector25,
   },
   images: {},
   illustrations: {},
