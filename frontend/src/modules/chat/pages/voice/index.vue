@@ -6,6 +6,7 @@ import { transcribeVoiceCancelable } from "@/modules/chat/api/chat";
 import { isRequestAbortedError } from "@/infrastructure/http/request";
 import { useChatStore } from "@/modules/chat/store/chat";
 import ChatCabinScene from "@/modules/chat/components/ChatCabinScene.vue";
+import ChatDailyLimitModal from "@/modules/chat/components/ChatDailyLimitModal.vue";
 import CabinVoiceControlBlock from "@/modules/chat/components/CabinVoiceControlBlock.vue";
 import { createAsyncFlowGuard } from "@/modules/chat/utils/asyncFlowGuard";
 import { ROUTES } from "@/shared/constants/routes";
@@ -205,16 +206,11 @@ function isDailyTicketLimitError(error: unknown): boolean {
 function showDailyLimitModal() {
   if (dailyLimitModalVisible.value) return;
   dailyLimitModalVisible.value = true;
-  uni.showModal({
-    title: "今天先歇一歇",
-    content: "今天已经有点累了，明天再来和我聊聊吧~",
-    showCancel: false,
-    confirmText: "返回",
-    complete: () => {
-      dailyLimitModalVisible.value = false;
-      goBack();
-    },
-  });
+}
+
+function handleDailyLimitConfirm() {
+  dailyLimitModalVisible.value = false;
+  goBack();
 }
 
 function resetVoiceFlow() {
@@ -707,6 +703,7 @@ function stopSpeechRecognition() {
     </template>
     <template #footer>
       <text v-if="errorMsg" class="voice-page__error">{{ errorMsg }}</text>
+      <ChatDailyLimitModal v-if="dailyLimitModalVisible" @confirm="handleDailyLimitConfirm" />
     </template>
   </ChatCabinScene>
 </template>

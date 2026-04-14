@@ -3,6 +3,7 @@ import { computed, nextTick, onBeforeUnmount, ref } from "vue";
 import { onLoad, onShow } from "@dcloudio/uni-app";
 import ChatCabinScene from "@/modules/chat/components/ChatCabinScene.vue";
 import CabinTextInputBlock from "@/modules/chat/components/CabinTextInputBlock.vue";
+import ChatDailyLimitModal from "@/modules/chat/components/ChatDailyLimitModal.vue";
 import { useAuthStore } from "@/modules/auth/store/auth";
 import { useChatStore } from "@/modules/chat/store/chat";
 import { createAsyncFlowGuard } from "@/modules/chat/utils/asyncFlowGuard";
@@ -86,16 +87,11 @@ function isDailyTicketLimitError(error: unknown): boolean {
 function showDailyLimitModal() {
   if (dailyLimitModalVisible.value) return;
   dailyLimitModalVisible.value = true;
-  uni.showModal({
-    title: "今天先歇一歇",
-    content: "今天已经有点累了，明天再来和我聊聊吧~",
-    showCancel: false,
-    confirmText: "返回",
-    complete: () => {
-      dailyLimitModalVisible.value = false;
-      goBack();
-    },
-  });
+}
+
+function handleDailyLimitConfirm() {
+  dailyLimitModalVisible.value = false;
+  goBack();
 }
 
 async function ensureSession() {
@@ -286,6 +282,7 @@ function openVoiceInput() {
     </template>
     <template #footer>
       <text v-if="errorMsg" class="chat-cabin__error">{{ errorMsg }}</text>
+      <ChatDailyLimitModal v-if="dailyLimitModalVisible" @confirm="handleDailyLimitConfirm" />
     </template>
   </ChatCabinScene>
 </template>
