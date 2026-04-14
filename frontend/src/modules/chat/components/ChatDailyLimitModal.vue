@@ -21,7 +21,7 @@ const emit = defineEmits<{
 
       <text class="chat-daily-limit-modal__title">今天先歇一歇</text>
       <view class="chat-daily-limit-modal__copy">
-        <text class="chat-daily-limit-modal__copy-line">今天已经有点累了，</text>
+        <text class="chat-daily-limit-modal__copy-line">言屿精灵已经有点累了，</text>
         <text class="chat-daily-limit-modal__copy-line">明天再来和我聊聊吧~</text>
       </view>
 

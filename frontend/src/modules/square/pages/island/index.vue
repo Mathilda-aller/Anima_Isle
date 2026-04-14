@@ -352,7 +352,7 @@ function openBubble(bubble: TagBubbleViewModel) {
 }
 
 .square-island-page__layer--dimmed {
-  filter: brightness(0.34) saturate(0.78);
+  filter: brightness(0.65) saturate(0.85);
 }
 
 .square-island-page__layer--outline,
@@ -376,7 +376,7 @@ function openBubble(bubble: TagBubbleViewModel) {
 }
 
 .square-island-page__ribbon-shell--dimmed {
-  filter: brightness(0.34) saturate(0.78);
+  filter: brightness(0.65) saturate(0.85);
 }
 
 .square-island-page__ribbon-shell--outline,
