@@ -457,21 +457,15 @@ onBeforeUnmount(() => {
 
 .chat-generating__deep-glow {
   position: absolute;
-  left: 6.97%;
-  top: 17.62%;
+  left: 50%;
+  top: 50%;
   width: 96.02%;
   height: 44.16%;
   border-radius: 9999rpx;
-  background: radial-gradient(
-    circle at 50% 50%,
-    rgba(203, 215, 194, 0.98) 0%,
-    rgba(160, 214, 214, 0.68) 36%,
-    rgba(116, 212, 234, 0.44) 68%,
-    rgba(116, 212, 234, 0) 100%
-  );
+  background: var(--anima-glow-generating);
   filter: blur(64rpx);
   opacity: 0.96;
-  transform: scale(1.02);
+  transform: translate(-50%, -50%) scale(1.02);
   animation: generating-deep-glow-breathe 5.6s ease-in-out infinite;
 }
 
@@ -607,12 +601,12 @@ onBeforeUnmount(() => {
   0%,
   100% {
     opacity: 0.9;
-    transform: scale(1.01);
+    transform: translate(-50%, -50%) scale(1.01);
   }
 
   50% {
     opacity: 1;
-    transform: scale(1.06);
+    transform: translate(-50%, -50%) scale(1.06);
   }
 }
 </style>

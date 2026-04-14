@@ -12,6 +12,7 @@ defineProps<{
 <template>
   <StageViewportShell>
     <view class="content">
+      <view class="auth-page-shell__halo" />
       <image class="ip-logo" :src="AUTH_ASSETS.illustrations.islandIpLogo" mode="aspectFit" />
       <text class="title">{{ title }}</text>
       <text class="subtitle">{{ subtitle }}</text>
@@ -38,12 +39,33 @@ defineProps<{
 <style scoped lang="scss">
 .content {
   position: relative;
+  isolation: isolate;
   z-index: 1;
   min-height: 100vh;
   padding: calc(140rpx + env(safe-area-inset-top)) 56rpx calc(74rpx + env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;
   align-items: center;
+}
+
+.content > :not(.auth-page-shell__halo) {
+  position: relative;
+  z-index: 1;
+}
+
+.auth-page-shell__halo {
+  position: absolute;
+  left: 50%;
+  top: 60%;
+  width: 694rpx;
+  height: 694rpx;
+  border-radius: 50%;
+  background: var(--anima-glow-auth);
+  filter: blur(128rpx);
+  mix-blend-mode: screen;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  z-index: 0;
 }
 
 .ip-logo {

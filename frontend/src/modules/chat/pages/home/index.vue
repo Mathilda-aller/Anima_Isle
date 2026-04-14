@@ -82,6 +82,8 @@ function goPublish() {
 <template>
   <StageViewportShell>
     <view class="home-inner">
+      <image class="home-page__halo" :src="CHAT_ASSETS.images.homeBottomHalo" mode="widthFix" />
+
       <view class="greeting">
         <text class="hello">晚上好，欢迎来到言屿</text>
         <text class="en">GOOD NIGHT</text>
@@ -158,6 +160,22 @@ function goPublish() {
   padding: 0 24rpx calc(24rpx + env(safe-area-inset-bottom));
   padding-top: calc(88rpx + env(safe-area-inset-top));
   box-sizing: border-box;
+}
+
+.home-inner > :not(.home-page__halo) {
+  position: relative;
+  z-index: 1;
+}
+
+.home-page__halo {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  z-index: 0;
 }
 
 .greeting {

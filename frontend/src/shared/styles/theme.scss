@@ -43,8 +43,21 @@
   --anima-line-code-button: rgba(255, 255, 255, 0.12);
   --anima-surface-field-focus: rgba(255, 255, 255, 0.07);
   --anima-button-code-sheen: radial-gradient(circle, rgba(183, 228, 255, 0.22) 0%, rgba(183, 228, 255, 0.08) 46%, rgba(183, 228, 255, 0) 84%);
-  --anima-glow-auth: radial-gradient(circle, rgba(116, 212, 234, 0.55) 0%, rgba(90, 166, 183, 0.42) 26%, rgba(65, 120, 132, 0) 66%);
+  --anima-glow-auth: radial-gradient(
+    circle,
+    rgba(116, 212, 234, 0.55) 0%,
+    rgba(90, 166, 183, 0.535) 12.74%,
+    rgba(65, 120, 132, 0.52) 25.48%,
+    rgba(65, 120, 132, 0) 100%
+  );
   --anima-glow-chat: radial-gradient(circle, rgba(116, 212, 234, 0.85) 0%, rgba(90, 166, 183, 0.48) 32%, rgba(65, 120, 132, 0) 70%);
+  --anima-glow-generating: radial-gradient(
+    circle,
+    rgba(116, 212, 234, 0.36) 0%,
+    rgba(160, 214, 214, 0.68) 12.74%,
+    rgba(203, 215, 194, 1) 25.48%,
+    rgba(203, 215, 194, 0) 100%
+  );
   --anima-glow-ticket: radial-gradient(
     circle,
     rgba(116, 212, 234, 0.54) 0%,
