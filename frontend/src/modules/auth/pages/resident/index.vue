@@ -182,10 +182,9 @@ function closeCommunityModal() {
 .resident-page__scene-shell {
   position: absolute;
   top: -9px;
-  left: 50%;
-  width: 404px;
+  left: 0;
+  width: 100%;
   height: 632px;
-  transform: translateX(-50%);
   overflow: hidden;
   pointer-events: none;
 }
@@ -208,11 +207,10 @@ function closeCommunityModal() {
 
 .resident-page__scene-transition {
   position: absolute;
-  left: 50%;
+  left: 0;
   top: 528px;
-  width: 406px;
+  width: 100%;
   height: 96px;
-  transform: translateX(-50%);
   background:
     radial-gradient(circle at 50% 0, rgba(108, 130, 225, 0.18) 0%, rgba(108, 130, 225, 0) 48%),
     linear-gradient(180deg, rgba(108, 130, 225, 0) 0%, rgba(78, 94, 162, 0.62) 59.135%, #354278 100%);
@@ -313,18 +311,18 @@ function closeCommunityModal() {
   border: 1px solid rgba(236, 247, 255, 0.16);
   border-radius: 34.844px;
   background:
-    radial-gradient(circle at 0 18%, rgba(18, 211, 255, 0.08) 0%, rgba(18, 211, 255, 0) 28%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.13) 0%, rgba(255, 255, 255, 0.03) 100%),
-    var(--anima-resident-surface);
+    radial-gradient(circle at 0 18%, rgba(18, 211, 255, 0.07) 0%, rgba(18, 211, 255, 0) 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.02) 100%),
+    rgba(7, 17, 42, 0.22);
   box-shadow: var(--anima-resident-shadow);
-  backdrop-filter: blur(28rpx);
+  backdrop-filter: blur(24rpx);
 }
 
 .resident-page__panel-title {
   position: absolute;
   top: 17px;
-  left: 148px;
-  width: 66px;
+  left: 0;
+  width: 100%;
   color: var(--anima-text-strong);
   font-size: 16px;
   line-height: 28px;
@@ -336,7 +334,8 @@ function closeCommunityModal() {
 .resident-page__card-wrap {
   position: absolute;
   top: 67px;
-  left: 101px;
+  left: 50%;
+  transform: translateX(-50%);
   width: 156.04px;
   height: 84px;
   display: flex;
@@ -359,8 +358,8 @@ function closeCommunityModal() {
 .resident-page__ticket-hint {
   position: absolute;
   top: 148px;
-  left: 26px;
-  width: 306px;
+  left: 32px;
+  right: 32px;
   color: rgba(255, 255, 255, 0.72);
   font-size: 10px;
   line-height: 18px;
@@ -371,9 +370,9 @@ function closeCommunityModal() {
 
 .resident-page__faq {
   position: absolute;
-  top: 182px;
-  left: 33px;
-  width: 289px;
+  top: 170px;
+  left: 36px;
+  right: 36px;
   display: flex;
   flex-direction: column;
 }
