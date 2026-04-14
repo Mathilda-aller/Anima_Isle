@@ -31,6 +31,7 @@ def _build_auth_response(user) -> schemas.AuthTokenResponse:
             id=user.id,
             nickname=user.nickname,
             ui_style=user.ui_style_pref,
+            is_internal_tester=user.is_internal_tester,
         ),
     )
 

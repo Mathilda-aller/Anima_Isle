@@ -19,6 +19,7 @@ class User(Base):
     avatar_url = Column(String(512), nullable=True) # URL 可能较长
     ui_style_pref = Column(String(20), default="Warm") 
     travel_count = Column(Integer, default=0)
+    is_internal_tester = Column(Boolean, default=False, nullable=False)
     
     created_at = Column(DateTime, default=datetime.now)
     last_login_at = Column(DateTime, nullable=True)

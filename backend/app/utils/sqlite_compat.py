@@ -7,7 +7,7 @@ from app.database import engine
 
 logger = logging.getLogger(__name__)
 
-LATEST_ALEMBIC_REVISION = "c91c8f5b6a42"
+LATEST_ALEMBIC_REVISION = "d3f0b9d5d6a1"
 
 
 def ensure_sqlite_dev_schema_compatibility() -> None:
@@ -47,6 +47,9 @@ def ensure_sqlite_dev_schema_compatibility() -> None:
         if "password_changed_at" not in user_columns:
             conn.execute(text("ALTER TABLE users ADD COLUMN password_changed_at DATETIME"))
             logger.info("SQLite compat: added users.password_changed_at")
+        if "is_internal_tester" not in user_columns:
+            conn.execute(text("ALTER TABLE users ADD COLUMN is_internal_tester BOOLEAN NOT NULL DEFAULT 0"))
+            logger.info("SQLite compat: added users.is_internal_tester")
 
         existing_tables = set(inspector.get_table_names())
 

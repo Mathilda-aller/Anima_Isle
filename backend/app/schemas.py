@@ -47,6 +47,7 @@ class UserDTO(BaseModel):
     avatar_url: Optional[str] = None
     ui_style_pref: str
     travel_count: int
+    is_internal_tester: bool = False
     
     # 允许从 ORM 模型读取数据
     model_config = ConfigDict(from_attributes=True)
@@ -60,6 +61,7 @@ class AuthUserInfo(BaseModel):
     id: int
     nickname: str
     ui_style: str
+    is_internal_tester: bool = False
 
 
 class AuthTokenResponse(BaseModel):

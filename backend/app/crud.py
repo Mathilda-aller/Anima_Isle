@@ -49,6 +49,17 @@ def create_wechat_user(db: Session, openid: str, nickname: Optional[str] = None)
     return db_user
 
 
+def update_user_internal_tester(
+    db: Session,
+    user: models.User,
+    is_internal_tester: bool,
+) -> models.User:
+    user.is_internal_tester = is_internal_tester
+    db.commit()
+    db.refresh(user)
+    return user
+
+
 def create_user(db: Session, user: schemas.UserLoginRequest):
     # 兼容旧调用路径
     if user.login_type == "email":
@@ -268,6 +279,18 @@ def get_user_tickets(db: Session, user_id: int, skip: int = 0, limit: int = 10):
              .filter(models.Ticket.user_id == user_id)\
              .order_by(desc(models.Ticket.created_at))\
              .offset(skip).limit(limit).all()
+
+
+def count_user_tickets_created_since(db: Session, user_id: int, since: datetime) -> int:
+    return (
+        db.query(func.count(models.Ticket.id))
+        .filter(
+            models.Ticket.user_id == user_id,
+            models.Ticket.created_at >= since,
+        )
+        .scalar()
+        or 0
+    )
 
 def mark_ticket_print_intent(db: Session, ticket_uid: str):
     ticket = db.query(models.Ticket).filter(models.Ticket.ticket_uid == ticket_uid).first()

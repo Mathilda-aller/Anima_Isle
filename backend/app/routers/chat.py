@@ -5,6 +5,7 @@ import os
 import random
 import time
 import uuid
+from datetime import datetime
 from typing import Any, AsyncIterator, Awaitable, Callable, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
@@ -19,6 +20,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 QUESTIONS_DB: Dict[str, List[str]] = {}
 DisconnectChecker = Callable[[], Awaitable[bool]]
+DAILY_TICKET_LIMIT = 2
 
 
 def _log_chat_event(log_level: int, event: str, **fields: Any) -> None:
@@ -92,6 +94,27 @@ def _sse_event(event: str, data: Dict[str, Any]) -> str:
 
 async def _never_disconnected() -> bool:
     return False
+
+
+def _today_start() -> datetime:
+    return datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+
+
+def _assert_daily_ticket_limit_not_reached(
+    *,
+    db: Session,
+    user: models.User,
+) -> None:
+    if user.is_internal_tester:
+        return
+
+    created_today = crud.count_user_tickets_created_since(
+        db,
+        user_id=user.id,
+        since=_today_start(),
+    )
+    if created_today >= DAILY_TICKET_LIMIT:
+        raise HTTPException(status_code=429, detail="daily_ticket_limit_reached")
 
 
 async def _cancel_background_tasks(*tasks: Optional[asyncio.Task[Any]]) -> None:
@@ -269,6 +292,7 @@ def start_chat(
     db: Session = Depends(deps.get_db),
     current_user: models.User = Depends(deps.get_current_user),
 ):
+    _assert_daily_ticket_limit_not_reached(db=db, user=current_user)
     chat_session = crud.create_chat_session(db, user_id=current_user.id)
     q1_list = QUESTIONS_DB.get("turn_1", ["今天发生了什么？"])
     first_q = random.choice(q1_list)
@@ -952,6 +976,7 @@ async def reply_chat(
         user_id=current_user.id,
         breakdown=breakdown,
     )
+    _assert_daily_ticket_limit_not_reached(db=db, user=current_user)
 
     try:
         return await _build_sync_final_response(
@@ -1012,6 +1037,7 @@ async def reply_chat_stream(
         user_id=current_user.id,
         breakdown=breakdown,
     )
+    _assert_daily_ticket_limit_not_reached(db=db, user=current_user)
 
     headers = {
         "Cache-Control": "no-cache",

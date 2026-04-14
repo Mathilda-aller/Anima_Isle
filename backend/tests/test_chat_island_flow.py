@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from datetime import datetime, timedelta
 
 import pytest
 from fastapi.testclient import TestClient
@@ -149,6 +150,131 @@ def test_chat_reply_risk_blocked_uses_risk_engine(client, db_session, monkeypatc
 
     assert step2.status_code == 200
     assert step2.json()["state"] == "risk_blocked"
+
+
+def test_chat_start_rejects_when_daily_ticket_limit_reached(client, db_session):
+    user = crud.create_email_user(
+        db_session,
+        email="limit_reached@example.com",
+        password="abc12345",
+        nickname="LimitReached",
+    )
+    crud.create_ticket(db_session, {"image_url": "https://img/1.jpg", "poem_content": "1", "island_category": "RAIN"}, user.id)
+    crud.create_ticket(db_session, {"image_url": "https://img/2.jpg", "poem_content": "2", "island_category": "RAIN"}, user.id)
+
+    token = security.create_access_token(data={"sub": str(user.id)})
+    headers = {"Authorization": f"Bearer {token}"}
+
+    response = client.post("/chat/start", headers=headers)
+
+    assert response.status_code == 429
+    assert response.json()["detail"] == "daily_ticket_limit_reached"
+
+
+def test_chat_reply_rejects_final_generation_when_daily_ticket_limit_reached(client, db_session, monkeypatch):
+    async def _risk(*args, **kwargs):
+        raise AssertionError("risk check should not run when daily limit is reached")
+
+    monkeypatch.setattr(risk_engine, "check_text_risk", _risk)
+
+    user = crud.create_email_user(
+        db_session,
+        email="reply_limit@example.com",
+        password="abc12345",
+        nickname="ReplyLimit",
+    )
+    session = crud.create_chat_session(db_session, user_id=user.id)
+    crud.update_chat_step(db_session, session.session_id, step=1, answer="第一轮", turn_index=1)
+    crud.create_ticket(db_session, {"image_url": "https://img/1.jpg", "poem_content": "1", "island_category": "RAIN"}, user.id)
+    crud.create_ticket(db_session, {"image_url": "https://img/2.jpg", "poem_content": "2", "island_category": "RAIN"}, user.id)
+
+    token = security.create_access_token(data={"sub": str(user.id)})
+    headers = {"Authorization": f"Bearer {token}"}
+
+    response = client.post("/chat/reply", json={"session_id": session.session_id, "content": "第二轮"}, headers=headers)
+
+    assert response.status_code == 429
+    assert response.json()["detail"] == "daily_ticket_limit_reached"
+    refreshed = crud.get_chat_session(db_session, session.session_id)
+    assert refreshed.current_step == 1
+    assert refreshed.turn_2_answer == "第二轮"
+
+
+def test_chat_reply_stream_rejects_final_generation_when_daily_ticket_limit_reached(client, db_session, monkeypatch):
+    async def _risk(*args, **kwargs):
+        raise AssertionError("risk check should not run when daily limit is reached")
+
+    monkeypatch.setattr(risk_engine, "check_text_risk", _risk)
+
+    user = crud.create_email_user(
+        db_session,
+        email="stream_limit@example.com",
+        password="abc12345",
+        nickname="StreamLimit",
+    )
+    session = crud.create_chat_session(db_session, user_id=user.id)
+    crud.update_chat_step(db_session, session.session_id, step=1, answer="第一轮", turn_index=1)
+    crud.create_ticket(db_session, {"image_url": "https://img/1.jpg", "poem_content": "1", "island_category": "RAIN"}, user.id)
+    crud.create_ticket(db_session, {"image_url": "https://img/2.jpg", "poem_content": "2", "island_category": "RAIN"}, user.id)
+
+    token = security.create_access_token(data={"sub": str(user.id)})
+    headers = {"Authorization": f"Bearer {token}"}
+
+    response = client.post("/chat/reply/stream", json={"session_id": session.session_id, "content": "第二轮"}, headers=headers)
+
+    assert response.status_code == 429
+    assert response.json()["detail"] == "daily_ticket_limit_reached"
+
+
+def test_internal_tester_can_bypass_daily_ticket_limit(client, db_session, monkeypatch):
+    async def _risk(*args, **kwargs):
+        return _safe_result()
+
+    async def _empathy(*args, **kwargs):
+        return "我在听你说。"
+
+    async def _route(*args, **kwargs):
+        return {"Island": "RAIN", "Intensity": "LOW"}
+
+    async def _embedding(*args, **kwargs):
+        return [0.1] * 1024
+
+    async def _poem(*args, **kwargs):
+        return "第一行\n第二行\n第三行"
+
+    def _search(*args, **kwargs):
+        return [_candidate("img-1", 0), _candidate("img-2", 1), _candidate("img-3", 2)]
+
+    monkeypatch.setattr(risk_engine, "check_text_risk", _risk)
+    monkeypatch.setattr(ai_engine, "generate_empathy_text", _empathy)
+    monkeypatch.setattr(ai_engine, "classify_emotion_route", _route)
+    monkeypatch.setattr(ai_engine, "get_embedding", _embedding)
+    monkeypatch.setattr(ai_engine, "generate_three_line_poem", _poem)
+    monkeypatch.setattr(search_engine, "search_island_candidates", _search)
+
+    user = crud.create_email_user(
+        db_session,
+        email="internal_tester@example.com",
+        password="abc12345",
+        nickname="InternalTester",
+    )
+    user = crud.update_user_internal_tester(db_session, user, True)
+    crud.create_ticket(db_session, {"image_url": "https://img/1.jpg", "poem_content": "1", "island_category": "RAIN"}, user.id)
+    crud.create_ticket(db_session, {"image_url": "https://img/2.jpg", "poem_content": "2", "island_category": "RAIN"}, user.id)
+
+    token = security.create_access_token(data={"sub": str(user.id)})
+    headers = {"Authorization": f"Bearer {token}"}
+
+    start_response = client.post("/chat/start", headers=headers)
+    assert start_response.status_code == 200
+    session_id = start_response.json()["session_id"]
+
+    step1 = client.post("/chat/reply", json={"session_id": session_id, "content": "今天下雨"}, headers=headers)
+    assert step1.status_code == 200
+
+    step2 = client.post("/chat/reply", json={"session_id": session_id, "content": "我有点累"}, headers=headers)
+    assert step2.status_code == 200
+    assert step2.json()["state"] == "finished"
 
 
 def test_chat_reply_logs_new_stage_breakdown(client, db_session, monkeypatch, caplog):
@@ -376,6 +502,35 @@ def test_chat_reply_generation_failure_keeps_session_retryable(client, db_sessio
     assert retried.status_code == 200
     assert retried.json()["state"] == "finished"
     assert crud.get_chat_session(db_session, session_id).current_step == 3
+    assert db_session.query(models.Ticket).count() == 1
+
+
+def test_daily_ticket_count_only_includes_today(db_session):
+    user = crud.create_email_user(
+        db_session,
+        email="count_today@example.com",
+        password="abc12345",
+        nickname="CountToday",
+    )
+    old_ticket = crud.create_ticket(
+        db_session,
+        {"image_url": "https://img/old.jpg", "poem_content": "old", "island_category": "RAIN"},
+        user.id,
+    )
+    old_ticket.created_at = datetime.now() - timedelta(days=1)
+    db_session.commit()
+
+    crud.create_ticket(
+        db_session,
+        {"image_url": "https://img/new.jpg", "poem_content": "new", "island_category": "RAIN"},
+        user.id,
+    )
+
+    assert crud.count_user_tickets_created_since(
+        db_session,
+        user.id,
+        datetime.now().replace(hour=0, minute=0, second=0, microsecond=0),
+    ) == 1
 
 
 def test_chat_reply_risk_blocked_advances_session_and_skips_generation(client, db_session, monkeypatch):
