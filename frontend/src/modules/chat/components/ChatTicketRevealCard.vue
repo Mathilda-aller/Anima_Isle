@@ -183,14 +183,14 @@ function handleImageError() {
   position: absolute;
   left: 50%;
   top: 71.9%;
-  width: 198rpx;
-  height: 64rpx;
+  width: 212rpx;
+  height: 72rpx;
   transform: translateX(-50%);
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1rpx solid rgba(255, 255, 255, 0.6);
-  border-radius: 30rpx;
+  border: 1rpx solid rgba(230, 248, 255, 0.48);
+  border-radius: 36rpx;
   background: rgba(0, 0, 0, 0);
   transition: opacity 180ms ease, transform 180ms ease;
 }
@@ -199,25 +199,26 @@ function handleImageError() {
 .chat-ticket-reveal-card__accept::after {
   content: "";
   position: absolute;
-  top: -1rpx;
-  width: 48rpx;
-  height: 16rpx;
-  background: linear-gradient(180deg, rgba(7, 39, 67, 1) 0%, rgba(7, 39, 67, 0) 100%);
+  top: -2rpx;
+  width: 54rpx;
+  height: 14rpx;
+  border-radius: 2rpx;
+  background: linear-gradient(180deg, rgba(22, 59, 102, 0.92) 0%, rgba(7, 39, 67, 0.72) 100%);
 }
 
 .chat-ticket-reveal-card__accept::before {
-  left: 26rpx;
+  left: 48rpx;
 }
 
 .chat-ticket-reveal-card__accept::after {
-  right: 26rpx;
+  right: 48rpx;
 }
 
 .chat-ticket-reveal-card__accept-text {
   color: var(--anima-text-main);
   font-family: var(--anima-font-display);
   font-size: 32rpx;
-  line-height: 56rpx;
+  line-height: 32rpx;
   letter-spacing: 1rpx;
   text-shadow: 0 0 8rpx rgba(255, 255, 255, 0.5);
 }
