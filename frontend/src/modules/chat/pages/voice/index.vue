@@ -56,6 +56,7 @@ const freshOpen = ref(false);
 const permissionState = ref<"idle" | "granted" | "denied" | "unsupported">("idle");
 const rippleIntensity = ref(0);
 const errorMsg = ref("");
+const dailyLimitModalVisible = ref(false);
 const sceneTransitioning = ref(false);
 const voiceFlow = ref<"first" | "second">("first");
 const currentQuestionIndex = ref<1 | 2>(1);
@@ -121,6 +122,10 @@ onShow(async () => {
       secondVoicePromptText.value = chatStore.q2 || "";
     }
   } catch (error) {
+    if (isDailyTicketLimitError(error)) {
+      showDailyLimitModal();
+      return;
+    }
     errorMsg.value = normalizeError(error);
   }
 });
@@ -191,6 +196,25 @@ function normalizeError(error: unknown): string {
     return JSON.stringify(error.detail);
   }
   return "录音处理失败，请稍后重试";
+}
+
+function isDailyTicketLimitError(error: unknown): boolean {
+  return error instanceof ApiError && error.statusCode === 429 && error.detail === "daily_ticket_limit_reached";
+}
+
+function showDailyLimitModal() {
+  if (dailyLimitModalVisible.value) return;
+  dailyLimitModalVisible.value = true;
+  uni.showModal({
+    title: "今天先歇一歇",
+    content: "今天已经有点累了，明天再来和我聊聊吧~",
+    showCancel: false,
+    confirmText: "返回",
+    complete: () => {
+      dailyLimitModalVisible.value = false;
+      goBack();
+    },
+  });
 }
 
 function resetVoiceFlow() {
