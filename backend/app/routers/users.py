@@ -6,6 +6,7 @@ router = APIRouter()
 
 @router.get("/me", response_model=schemas.UserDTO)
 def read_users_me(
+    db: Session = Depends(deps.get_db),
     current_user: models.User = Depends(deps.get_current_user)
 ):
     """
@@ -14,7 +15,15 @@ def read_users_me(
     1. 登录后展示用户昵称、头像
     2. 判断用户是否选过 ui_style_pref (如果是默认值，可能要弹窗让选)
     """
-    return current_user
+    return schemas.UserDTO.model_validate(
+        {
+            "id": current_user.id,
+            "nickname": current_user.nickname,
+            "avatar_url": current_user.avatar_url,
+            "ui_style_pref": current_user.ui_style_pref,
+            "travel_count": crud.count_user_tickets(db, current_user.id),
+        }
+    )
 
 @router.post("/style", response_model=schemas.UserDTO)
 def update_user_style(

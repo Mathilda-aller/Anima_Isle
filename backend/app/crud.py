@@ -281,6 +281,15 @@ def get_user_tickets(db: Session, user_id: int, skip: int = 0, limit: int = 10):
              .offset(skip).limit(limit).all()
 
 
+def count_user_tickets(db: Session, user_id: int) -> int:
+    return (
+        db.query(func.count(models.Ticket.id))
+        .filter(models.Ticket.user_id == user_id)
+        .scalar()
+        or 0
+    )
+
+
 def count_user_tickets_created_since(db: Session, user_id: int, since: datetime) -> int:
     return (
         db.query(func.count(models.Ticket.id))
