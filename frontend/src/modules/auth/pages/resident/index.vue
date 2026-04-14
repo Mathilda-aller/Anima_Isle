@@ -288,7 +288,7 @@ function closeCommunityModal() {
 
 .resident-page__hero-copy {
   width: 100%;
-  max-width: 313px;
+  max-width: none;
   margin-top: 21px;
   display: flex;
   flex-direction: column;
@@ -303,7 +303,7 @@ function closeCommunityModal() {
 .resident-page__hero-copy-line {
   display: block;
   max-width: 100%;
-  white-space: normal;
+  white-space: nowrap;
 }
 
 .resident-page__panel {
@@ -355,8 +355,9 @@ function closeCommunityModal() {
 }
 
 .resident-page__card-rotation {
-  width: 84px;
-  height: 156.04px;
+  width: 295px;
+  height: 548px;
+  flex: 0 0 auto;
   transform: rotate(-90deg) scale(0.2847);
   transform-origin: center;
 }
