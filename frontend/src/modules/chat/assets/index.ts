@@ -14,7 +14,6 @@ import ipStageHalo from "./icons/ip-stage-halo.svg";
 import memory from "./icons/memory.svg";
 import ticketRerollRefresh from "./icons/ticket-reroll-refresh.svg";
 import ticket from "./icons/ticket.svg";
-import homeBottomHalo from "./images/home-bottom-halo.svg";
 import { SHARED_ASSETS } from "@/shared/assets";
 
 export const CHAT_ASSETS = {
@@ -36,7 +35,6 @@ export const CHAT_ASSETS = {
     voiceTyping: chatVoiceTyping,
   },
   images: {
-    homeBottomHalo,
     inputGlow: inputActionGlow,
     islandIpFrame: chatVoiceTyping,
   },

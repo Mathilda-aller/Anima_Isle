@@ -46,7 +46,9 @@ const ticketMaskStyle = computed(() => ({
 
 <template>
   <view class="resident-ticket-card">
-    <view class="resident-ticket-card__glass-fill" :style="ticketMaskStyle"></view>
+    <view class="resident-ticket-card__glass-clip">
+      <view class="resident-ticket-card__glass-fill" :style="ticketMaskStyle"></view>
+    </view>
     <view class="resident-ticket-card__shell-wrap">
       <image class="resident-ticket-card__shell" :src="AUTH_ASSETS.residentTicket.shell" mode="scaleToFill" />
     </view>
@@ -62,13 +64,17 @@ const ticketMaskStyle = computed(() => ({
         <text>{{ props.travelLabelSub }}</text>
       </view>
 
-      <text
-        class="resident-ticket-card__resident-title"
-        :class="{ 'resident-ticket-card__resident-title--custom': hasCustomResidentTitle }"
-      >
-        {{ displayResidentTitle }}
-      </text>
-      <text class="resident-ticket-card__travel-count">{{ displayTravelCount }}</text>
+      <view class="resident-ticket-card__text-col resident-ticket-card__text-col--passenger">
+        <text
+          class="resident-ticket-card__resident-title"
+          :class="{ 'resident-ticket-card__resident-title--custom': hasCustomResidentTitle }"
+        >
+          {{ displayResidentTitle }}
+        </text>
+      </view>
+      <view class="resident-ticket-card__text-col resident-ticket-card__text-col--travel">
+        <text class="resident-ticket-card__travel-count">{{ displayTravelCount }}</text>
+      </view>
 
       <image
         class="resident-ticket-card__divider resident-ticket-card__divider--vertical"
@@ -98,6 +104,12 @@ const ticketMaskStyle = computed(() => ({
 .resident-ticket-card__shell-wrap {
   position: absolute;
   inset: 0;
+}
+
+.resident-ticket-card__glass-clip {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
 }
 
 .resident-ticket-card__glass-fill {
@@ -168,12 +180,27 @@ const ticketMaskStyle = computed(() => ({
   width: 25.763%;
 }
 
-.resident-ticket-card__resident-title,
-.resident-ticket-card__travel-count {
+.resident-ticket-card__text-col {
   position: absolute;
   top: 27.007%;
   height: 37.02%;
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.resident-ticket-card__text-col--passenger {
+  left: 11.864%;
+  width: 27.458%;
+}
+
+.resident-ticket-card__text-col--travel {
+  left: 60.678%;
+  width: 25.763%;
+}
+
+.resident-ticket-card__resident-title,
+.resident-ticket-card__travel-count {
   font-size: 20px;
   line-height: 20px;
   letter-spacing: 0.8rpx;
@@ -182,20 +209,10 @@ const ticketMaskStyle = computed(() => ({
   white-space: nowrap;
 }
 
-.resident-ticket-card__resident-title {
-  left: 19.661%;
-  width: 11.864%;
-}
-
 .resident-ticket-card__resident-title--custom {
   font-size: 15px;
   line-height: 15px;
   letter-spacing: 0;
-}
-
-.resident-ticket-card__travel-count {
-  left: 67.458%;
-  width: 11.864%;
 }
 
 .resident-ticket-card__divider {
