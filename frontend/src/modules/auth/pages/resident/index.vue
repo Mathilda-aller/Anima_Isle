@@ -110,15 +110,17 @@ function closeCommunityModal() {
           <view class="resident-page__panel">
             <text class="resident-page__panel-title">我的船票</text>
 
-            <view class="resident-page__card-wrap" hover-class="card-hover" @click="openIdentity">
-              <view class="resident-page__card-rotation">
-                <ResidentTicketCard
-                  class="resident-page__card-preview"
-                  :passenger-value="residentPassengerId"
-                  :travel-count="residentTravelCount"
-                  :travel-count-label="residentTravelLabel"
-                  :verification-code="residentVerificationCode"
-                />
+            <view class="resident-page__ticket-shell">
+              <view class="resident-page__card-wrap" hover-class="card-hover" @click="openIdentity">
+                <view class="resident-page__card-rotation">
+                  <ResidentTicketCard
+                    class="resident-page__card-preview"
+                    :passenger-value="residentPassengerId"
+                    :travel-count="residentTravelCount"
+                    :travel-count-label="residentTravelLabel"
+                    :verification-code="residentVerificationCode"
+                  />
+                </view>
               </view>
             </view>
 
@@ -136,14 +138,16 @@ function closeCommunityModal() {
 
       <view v-if="showCommunityModal" class="resident-page__overlay">
         <view class="resident-page__overlay-cover"></view>
-        <view class="resident-page__community-close" hover-class="tap-hover" @click="closeCommunityModal">
-          <image class="resident-page__community-close-line" :src="AUTH_ASSETS.resident.communityCloseA" mode="aspectFit" />
-          <image class="resident-page__community-close-line" :src="AUTH_ASSETS.resident.communityCloseB" mode="aspectFit" />
+        <view class="resident-page__overlay-inner">
+          <view class="resident-page__community-close" hover-class="tap-hover" @click="closeCommunityModal">
+            <image class="resident-page__community-close-line" :src="AUTH_ASSETS.resident.communityCloseA" mode="aspectFit" />
+            <image class="resident-page__community-close-line" :src="AUTH_ASSETS.resident.communityCloseB" mode="aspectFit" />
+          </view>
+          <view class="resident-page__community-slot">
+            <text class="resident-page__community-placeholder">二维码留白区域</text>
+          </view>
+          <text class="resident-page__community-tip">在微信长按二维码加入社群</text>
         </view>
-        <view class="resident-page__community-slot">
-          <text class="resident-page__community-placeholder">二维码留白区域</text>
-        </view>
-        <text class="resident-page__community-tip">在微信长按二维码加入社群</text>
       </view>
     </view>
   </view>
@@ -160,7 +164,6 @@ function closeCommunityModal() {
 .resident-page__shell {
   position: relative;
   width: 100%;
-  max-width: 402px;
   min-height: 100vh;
   margin: 0 auto;
   overflow: hidden;
@@ -191,9 +194,10 @@ function closeCommunityModal() {
 
 .resident-page__scene {
   position: absolute;
-  inset: 0;
+  top: -0.02%;
+  left: 0;
   width: 100%;
-  height: 100%;
+  height: 113.64%;
   opacity: 0.94;
 }
 
@@ -221,15 +225,19 @@ function closeCommunityModal() {
 
 .resident-page__canvas {
   position: relative;
-  min-height: max(874px, calc(100vh - env(safe-area-inset-bottom)));
-  padding-bottom: env(safe-area-inset-bottom);
   z-index: 1;
+  display: flex;
+  min-height: max(874px, calc(100vh - env(safe-area-inset-bottom)));
+  flex-direction: column;
+  align-items: center;
+  padding-bottom: calc(46px + env(safe-area-inset-bottom));
 }
 
 .resident-page__topbar {
   position: relative;
   z-index: 2;
   display: flex;
+  width: 100%;
   align-items: center;
   justify-content: space-between;
   padding: calc(44px + env(safe-area-inset-top)) 16px 0;
@@ -265,9 +273,9 @@ function closeCommunityModal() {
 }
 
 .resident-page__hero {
-  position: absolute;
-  top: calc(145px + env(safe-area-inset-top));
-  left: 24px;
+  width: 100%;
+  margin-top: 41px;
+  padding: 0 24px;
 }
 
 .resident-page__hero-title {
@@ -279,7 +287,8 @@ function closeCommunityModal() {
 }
 
 .resident-page__hero-copy {
-  width: 313px;
+  width: 100%;
+  max-width: 313px;
   margin-top: 21px;
   display: flex;
   flex-direction: column;
@@ -293,19 +302,19 @@ function closeCommunityModal() {
 
 .resident-page__hero-copy-line {
   display: block;
-  white-space: nowrap;
+  max-width: 100%;
+  white-space: normal;
 }
 
 .resident-page__panel {
-  position: absolute;
-  top: calc(545px + env(safe-area-inset-top));
-  left: 50%;
-  width: 358px;
-  height: 218px;
-  transform: translateX(-50%);
+  width: 89.05%;
+  max-width: 358px;
+  min-height: 218px;
+  margin-top: 295px;
   display: flex;
   flex-direction: column;
   align-items: center;
+  gap: 8px;
   box-sizing: border-box;
   overflow: hidden;
   border: 1px solid rgba(236, 247, 255, 0.16);
@@ -316,12 +325,10 @@ function closeCommunityModal() {
     rgba(7, 17, 42, 0.22);
   box-shadow: var(--anima-resident-shadow);
   backdrop-filter: blur(24rpx);
+  padding: 17px 33px 12px;
 }
 
 .resident-page__panel-title {
-  position: absolute;
-  top: 17px;
-  left: 0;
   width: 100%;
   color: var(--anima-text-strong);
   font-size: 16px;
@@ -331,11 +338,14 @@ function closeCommunityModal() {
   text-shadow: 0 0 8rpx rgba(255, 255, 255, 0.5);
 }
 
+.resident-page__ticket-shell {
+  display: flex;
+  width: 100%;
+  justify-content: center;
+  margin-top: 14px;
+}
+
 .resident-page__card-wrap {
-  position: absolute;
-  top: 67px;
-  left: 50%;
-  transform: translateX(-50%);
   width: 156.04px;
   height: 84px;
   display: flex;
@@ -356,24 +366,19 @@ function closeCommunityModal() {
 }
 
 .resident-page__ticket-hint {
-  position: absolute;
-  top: 148px;
-  left: 32px;
-  right: 32px;
+  width: 100%;
   color: rgba(255, 255, 255, 0.72);
   font-size: 10px;
   line-height: 18px;
   letter-spacing: 0.5px;
   text-align: center;
   text-shadow: 0 0 8rpx rgba(255, 255, 255, 0.24);
+  white-space: normal;
 }
 
 .resident-page__faq {
-  position: absolute;
-  top: 170px;
-  left: 36px;
-  right: 36px;
   display: flex;
+  width: 100%;
   flex-direction: column;
 }
 
@@ -383,15 +388,14 @@ function closeCommunityModal() {
   line-height: 20px;
   letter-spacing: 0.5px;
   text-shadow: 0 0 8rpx rgba(255, 255, 255, 0.37);
+  white-space: normal;
 }
 
 .resident-page__cta {
-  position: absolute;
-  left: 50%;
-  top: calc(795px + env(safe-area-inset-top));
+  position: relative;
   width: 104px;
   height: 33px;
-  margin-left: -52px;
+  margin-top: 32px;
   padding: 0;
   line-height: 33px;
   border: none;
@@ -441,6 +445,7 @@ function closeCommunityModal() {
   position: absolute;
   inset: 0;
   z-index: 20;
+  display: flex;
   overflow: hidden;
 }
 
@@ -451,15 +456,23 @@ function closeCommunityModal() {
   backdrop-filter: blur(4rpx);
 }
 
+.resident-page__overlay-inner {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  width: 100%;
+  min-height: 100vh;
+  flex-direction: column;
+  align-items: center;
+  padding: calc(48px + env(safe-area-inset-top)) 16px calc(54px + env(safe-area-inset-bottom));
+}
+
 .resident-page__community-close {
-  position: absolute;
-  top: calc(48px + env(safe-area-inset-top));
-  left: 16px;
+  align-self: flex-start;
   width: 24px;
   height: 24px;
   display: grid;
   place-items: center;
-  z-index: 2;
 }
 
 .resident-page__community-close-line {
@@ -469,18 +482,14 @@ function closeCommunityModal() {
 }
 
 .resident-page__community-slot {
-  position: absolute;
-  left: 50%;
-  top: calc(326px + env(safe-area-inset-top));
   width: 202px;
   height: 202px;
-  transform: translateX(-50%);
+  margin-top: 254px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.8);
-  z-index: 2;
 }
 
 .resident-page__community-placeholder {
@@ -491,15 +500,18 @@ function closeCommunityModal() {
 }
 
 .resident-page__community-tip {
-  position: absolute;
-  left: 50%;
-  top: calc(567px + env(safe-area-inset-top));
-  transform: translateX(-50%);
+  margin-top: 39px;
   color: var(--anima-text-strong);
   font-size: 16px;
   line-height: 28px;
   letter-spacing: 0.5px;
+  text-align: center;
   text-shadow: 0 0 8rpx rgba(255, 255, 255, 0.5);
-  z-index: 2;
+}
+
+@media screen and (min-width: 768px) {
+  .resident-page__shell {
+    max-width: 402px;
+  }
 }
 </style>
