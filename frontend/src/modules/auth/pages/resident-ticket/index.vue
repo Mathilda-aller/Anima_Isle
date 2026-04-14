@@ -5,6 +5,7 @@ import ResidentTicketCard from "@/modules/auth/components/ResidentTicketCard.vue
 import { useAuthStore } from "@/modules/auth/store/auth";
 import { useTicketStore } from "@/modules/ticket/store/ticket";
 import { TICKET_ASSETS } from "@/modules/ticket/assets";
+import { ROUTES } from "@/shared/constants/routes";
 import DarkBackgroundLayer from "@/shared/components/DarkBackgroundLayer.vue";
 import { toLogin } from "@/shared/utils/navigation";
 
@@ -68,6 +69,23 @@ onShow(async () => {
 function shareTicket() {
   uni.showToast({ title: "分享功能即将开放", icon: "none" });
 }
+
+function goBack() {
+  try {
+    uni.vibrateShort?.({
+      type: "light",
+    } as never);
+  } catch {
+    // Ignore devices that do not support haptics.
+  }
+
+  if (getCurrentPages().length > 1) {
+    uni.navigateBack();
+    return;
+  }
+
+  uni.reLaunch({ url: ROUTES.AUTH_RESIDENT });
+}
 </script>
 
 <template>
@@ -86,7 +104,7 @@ function shareTicket() {
 
       <!-- Stage: ticket card at 102px below header, matching Figma card top at 198px -->
       <view class="resident-ticket-page__stage">
-        <view class="resident-ticket-page__ticket">
+        <view class="resident-ticket-page__ticket" hover-class="ticket-hover" @click="goBack">
           <ResidentTicketCard
             :passenger-value="residentPassengerId"
             :travel-count="residentTravelCount"
@@ -110,7 +128,6 @@ function shareTicket() {
 .resident-ticket-page__shell {
   position: relative;
   width: 100%;
-  max-width: 402px;
   min-height: 100vh;
   margin: 0 auto;
   overflow: hidden;
@@ -175,16 +192,32 @@ function shareTicket() {
   flex-direction: column;
   align-items: center;
   padding-top: 102px;
-  padding-bottom: 48px;
+  padding-bottom: calc(48px + env(safe-area-inset-bottom));
 }
 
 /* Card: 295px wide (73.38% of 402px), portrait orientation — matches Figma node 1:423 (w-[295px] h-[548px]) */
 .resident-ticket-page__ticket {
   width: 73.38%;
-  max-width: 295px;
+  cursor: pointer;
+  transition: transform 0.18s ease, opacity 0.18s ease;
 }
 
 .tap-hover {
   opacity: 0.88;
+}
+
+.ticket-hover {
+  opacity: 0.92;
+  transform: translateY(-4rpx) scale(0.992);
+}
+
+@media screen and (min-width: 768px) {
+  .resident-ticket-page__shell {
+    max-width: 402px;
+  }
+
+  .resident-ticket-page__ticket {
+    max-width: 295px;
+  }
 }
 </style>
