@@ -1,13 +1,24 @@
 # --- AI 配置文件与凭证 ---
+.claude/
+.agents/
 .gemini/
 .env
 backend/.env
+
+# 环境变量（敏感信息）
+.env
+.env.*
+!.env.example
 
 # --- 数据库文件 ---
 # 绝对不要提交本地 SQLite 数据库，否则每次本地测试产生新数据都会引起代码冲突！
 anima_isle.db
 *.db
 *.sqlite3
+
+# 前端构建产物（服务器上现场打包）
+frontend/node_modules/
+frontend/dist/
 
 # --- 测试与缓存 ---
 # Python pytest 的本地缓存，没有提交价值
