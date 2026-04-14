@@ -32,7 +32,7 @@ const residentTravelLabel = computed(() => {
     return "尚未启航";
   }
 
-  return `已旅行过${residentTravelCount.value}座岛屿`;
+  return `已完成${residentTravelCount.value}次航行`;
 });
 const residentHint = computed(() => {
   if (loading.value) {
