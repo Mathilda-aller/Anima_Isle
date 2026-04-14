@@ -147,7 +147,7 @@ const ticketMaskStyle = computed(() => ({
   top: 13.14%;
   display: flex;
   flex-direction: column;
-  gap: 18rpx;
+  gap: 0;
   text-align: center;
   color: rgba(255, 255, 255, 0.92);
 }
@@ -224,8 +224,8 @@ const ticketMaskStyle = computed(() => ({
   top: 77.92%;
   width: 25.42%;
   aspect-ratio: 1 / 1;
-  border-radius: 18rpx;
-  background: rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.17);
   display: flex;
   align-items: center;
   justify-content: center;
