@@ -65,6 +65,11 @@
     "mp-toutiao" : {
         "usingComponents" : true
     },
+    "h5" : {
+        "router" : {
+            "base" : "/"
+        }
+    },
     "uniStatistics": {  
         "enable": false
     },

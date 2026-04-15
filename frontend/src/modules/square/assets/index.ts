@@ -8,8 +8,6 @@ import emberIslandMid from "./icons/62ad5969-2394-40a3-b149-9c708a879e52.svg";
 import emberIslandCore from "./icons/938559cf-1b6b-490e-87d0-270a6ee07949.svg";
 import lagoonIslandBase from "./icons/64c7fad9-44d7-4197-8c6e-a691f21d2778.svg";
 import lagoonIslandMid from "./icons/3627b2bc-6fcf-4a37-be5a-453664a8d354.svg";
-import islandSceneMist from "./icons/05805900-7396-474e-be8e-6326c1d004ee.png";
-import islandTagAvatar from "./icons/f6a70b5f-a9c4-431f-8d7f-fecdc4e005e2.png";
 import lagoonIslandCore from "./icons/fa1cdb11-33f6-47b7-9074-0a1cdbf144b9.svg";
 import hugClose from "./icons/hug-close.svg";
 import hugHeart from "./icons/hug-heart.svg";
@@ -24,6 +22,9 @@ import sproutIslandCore from "./icons/f701b6c1-4bf0-435d-b906-9e86847207ea.svg";
 import pebbleIslandBase from "./icons/44cfa55e-b7ee-4f9e-816b-25a1140fa832.svg";
 import pebbleIslandMid from "./icons/62765c90-bb75-4375-a3fa-bf6ef62c73c3.svg";
 import pebbleIslandCore from "./icons/0b9b47eb-90c8-4456-839b-5dcd564fc4b4.svg";
+
+const islandSceneMist = "/static/square/05805900-7396-474e-be8e-6326c1d004ee.png";
+const islandTagAvatar = "/static/square/f6a70b5f-a9c4-431f-8d7f-fecdc4e005e2.png";
 
 export const SQUARE_ASSETS = {
   icons: {
