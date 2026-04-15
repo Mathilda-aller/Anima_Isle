@@ -11,8 +11,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
 # 先复制依赖文件，利用 Docker 层缓存
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt \
-    -i https://pypi.tuna.tsinghua.edu.cn/simple
-
+    -i https://mirrors.aliyun.com/pypi/simple/ \
+    --trusted-host mirrors.aliyun.com \
+    --default-timeout=1000
 COPY . .
 
 EXPOSE 8000
