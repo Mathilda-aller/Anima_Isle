@@ -8,7 +8,10 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # 获取数据库 URL
-SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL")
+SQLALCHEMY_DATABASE_URL = (os.getenv("DATABASE_URL") or "").strip()
+
+if not SQLALCHEMY_DATABASE_URL:
+    raise RuntimeError("Missing DATABASE_URL environment variable")
 
 # 检查是否是 SQLite
 if SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
@@ -29,4 +32,3 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # 5. ORM 基类
 Base = declarative_base()
-
