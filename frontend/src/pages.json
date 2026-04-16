@@ -3,13 +3,13 @@
     {
       "path": "modules/auth/pages/login/index",
       "style": {
-        "navigationBarTitleText": "登录"
+        "navigationStyle": "custom"
       }
     },
     {
       "path": "modules/auth/pages/register/index",
       "style": {
-        "navigationBarTitleText": "注册"
+        "navigationStyle": "custom"
       }
     },
     {
@@ -27,13 +27,13 @@
     {
       "path": "modules/auth/pages/style/index",
       "style": {
-        "navigationBarTitleText": "选择风格"
+        "navigationStyle": "custom"
       }
     },
     {
       "path": "modules/chat/pages/home/index",
       "style": {
-        "navigationBarTitleText": "Anima Isle"
+        "navigationStyle": "custom"
       }
     },
     {
@@ -57,13 +57,13 @@
     {
       "path": "modules/ticket/pages/list/index",
       "style": {
-        "navigationBarTitleText": "记忆航线"
+        "navigationStyle": "custom"
       }
     },
     {
       "path": "modules/ticket/pages/detail/index",
       "style": {
-        "navigationBarTitleText": "船票详情"
+        "navigationStyle": "custom"
       }
     },
     {
@@ -75,7 +75,7 @@
     {
       "path": "modules/square/pages/map/index",
       "style": {
-        "navigationBarTitleText": "共感地图"
+        "navigationStyle": "custom"
       }
     },
     {
@@ -93,7 +93,7 @@
     {
       "path": "modules/square/pages/publish/index",
       "style": {
-        "navigationBarTitleText": "发送到岛屿"
+        "navigationStyle": "custom"
       }
     },
     {
