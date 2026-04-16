@@ -27,7 +27,7 @@ services:
     ports:
       - "80:80"
     volumes:
-      - ./frontend/dist/build/h5:/usr/share/nginx/html:ro
+      - ./frontend/h5:/usr/share/nginx/html:ro
       - ./.nginx/nginx.config:/etc/nginx/nginx.conf:ro
     depends_on:
       backend:
