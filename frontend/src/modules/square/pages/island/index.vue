@@ -269,9 +269,9 @@ function openBubble(bubble: TagBubbleViewModel) {
 .square-island-page__transport-message,
 .square-island-page__hero-title,
 .square-island-page__hero-subtitle {
-  color: var(--anima-text-main);
-  text-shadow: var(--anima-shadow-title);
-  font-family: var(--anima-font-display);
+  color: $anima-text-main;
+  text-shadow: $anima-shadow-title;
+  font-family: $anima-font-display;
 }
 
 .square-island-page__title {

@@ -138,8 +138,8 @@ const ticketMaskStyle = computed(() => ({
 .resident-ticket-card__content {
   position: absolute;
   inset: 0;
-  color: var(--anima-text-strong);
-  font-family: var(--anima-font-display);
+  color: $anima-text-strong;
+  font-family: $anima-font-display;
 }
 
 .resident-ticket-card__brand {
@@ -151,7 +151,7 @@ const ticketMaskStyle = computed(() => ({
   font-size: 24px;
   line-height: 35px;
   opacity: 0.4;
-  text-shadow: var(--anima-shadow-title);
+  text-shadow: $anima-shadow-title;
 }
 
 .resident-ticket-card__label {

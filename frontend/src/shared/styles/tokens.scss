@@ -1,0 +1,109 @@
+$bg-deep: #0a0a1a;
+$bg-panel: rgba(255, 255, 255, 0.06);
+$text-primary: #ffffff;
+$text-secondary: #9db0cc;
+$brand-primary: #2b63f1;
+$brand-success: #1f9d55;
+$danger: #ff7a7a;
+
+$anima-night-gradient: linear-gradient(180deg, #072743 0%, #2c417a 49.52%, #3f4376 100%);
+$anima-surface-overlay: rgba(5, 11, 24, 0.6);
+$anima-surface-panel: rgba(10, 18, 38, 0.95);
+$anima-surface-card: rgba(4, 14, 35, 0.74);
+$anima-surface-water: linear-gradient(180deg, rgba(77, 93, 155, 0.16) 0%, rgba(51, 62, 121, 0.5) 100%);
+$anima-surface-water-lines: repeating-linear-gradient(
+  0deg,
+  rgba(206, 219, 255, 0.05) 0 4rpx,
+  rgba(84, 101, 170, 0.08) 4rpx 18rpx
+);
+$anima-surface-field: rgba(255, 255, 255, 0.05);
+$anima-surface-field-strong: rgba(255, 255, 255, 0.1);
+$anima-surface-input: #132749;
+$anima-surface-field-focus: rgba(255, 255, 255, 0.07);
+
+$anima-text-main: #e6f8ff;
+$anima-text-strong: #e0f0ff;
+$anima-text-muted: #d1d5dc;
+$anima-text-soft: rgba(209, 213, 220, 0.6);
+$anima-text-dim: rgba(230, 248, 255, 0.6);
+$anima-text-float: rgba(255, 255, 255, 0.8);
+$anima-text-placeholder: rgba(255, 255, 255, 0.58);
+$anima-text-error: #ffd7d7;
+
+$anima-line-soft: rgba(230, 248, 255, 0.16);
+$anima-line-strong: rgba(230, 248, 255, 0.26);
+$anima-line-focus: rgba(171, 236, 255, 0.46);
+$anima-line-field: rgba(255, 255, 255, 0.08);
+$anima-line-code-button: rgba(255, 255, 255, 0.12);
+
+$anima-shadow-soft: 0 0 40rpx rgba(255, 255, 255, 0.08);
+$anima-shadow-inner: inset 0 0 40rpx rgba(255, 255, 255, 0.04);
+$anima-shadow-field: 0 0 48rpx rgba(255, 255, 255, 0.25);
+$anima-shadow-field-soft: 0 0 28rpx rgba(255, 255, 255, 0.12);
+$anima-shadow-field-focus: 0 0 34rpx rgba(142, 224, 255, 0.26);
+$anima-shadow-title: 0 0 8rpx rgba(255, 255, 255, 0.5);
+
+$anima-button-primary: #5f88ff;
+$anima-button-secondary: #1e335f;
+$anima-button-disabled: 0.6;
+$anima-button-code-sheen: radial-gradient(circle, rgba(183, 228, 255, 0.22) 0%, rgba(183, 228, 255, 0.08) 46%, rgba(183, 228, 255, 0) 84%);
+
+$anima-glow-auth: radial-gradient(circle, rgba(116, 212, 234, 0.55) 0%, rgba(90, 166, 183, 0.42) 26%, rgba(65, 120, 132, 0) 66%);
+$anima-glow-chat: radial-gradient(circle, rgba(116, 212, 234, 0.85) 0%, rgba(90, 166, 183, 0.48) 32%, rgba(65, 120, 132, 0) 70%);
+$anima-glow-ticket: radial-gradient(
+  circle,
+  rgba(116, 212, 234, 0.54) 0%,
+  rgba(90, 166, 183, 0.705) 12.74%,
+  rgba(65, 120, 132, 0.87) 25.48%,
+  rgba(65, 120, 132, 0) 100%
+);
+$anima-glow-cabin-halo: radial-gradient(
+  circle at 50% 50%,
+  rgba(116, 212, 234, 1) 0%,
+  rgba(90, 166, 183, 1) 12.74%,
+  rgba(65, 120, 132, 0) 25.481%
+);
+$anima-glow-stage-core: radial-gradient(
+  circle,
+  rgba(129, 224, 255, 0.98) 0%,
+  rgba(111, 197, 232, 0.72) 18%,
+  rgba(90, 166, 183, 0.42) 40%,
+  rgba(65, 120, 132, 0) 72%
+);
+$anima-glow-stage-outer: radial-gradient(
+  circle,
+  rgba(141, 234, 255, 0) 58%,
+  rgba(141, 234, 255, 0.14) 85%,
+  rgba(141, 234, 255, 0.22) 100%
+);
+$anima-glow-stage-mist: rgba(130, 221, 248, 0.18);
+$anima-glow-stage-shadow: 0 0 160rpx rgba(116, 212, 234, 0.42);
+
+$anima-font-display: "STSong", "Noto Serif SC", serif;
+$anima-font-title: 50rpx;
+$anima-font-subtitle: 30rpx;
+$anima-font-body: 28rpx;
+
+$anima-radius-pill: 100rpx;
+$anima-radius-lg: 20rpx;
+$anima-radius-md: 12rpx;
+$anima-radius-sm: 10rpx;
+
+$anima-space-xs: 8rpx;
+$anima-space-sm: 12rpx;
+$anima-space-md: 16rpx;
+$anima-space-lg: 24rpx;
+$anima-space-xl: 42rpx;
+
+$anima-resident-surface: rgba(7, 17, 42, 0.58);
+$anima-resident-surface-strong: rgba(10, 24, 60, 0.82);
+$anima-resident-line: rgba(195, 216, 255, 0.24);
+$anima-resident-line-strong: rgba(214, 230, 255, 0.5);
+$anima-resident-shadow: 0 18rpx 80rpx rgba(2, 8, 28, 0.42);
+$anima-resident-tag: rgba(255, 255, 255, 0.1);
+$anima-resident-scene-mask: linear-gradient(
+  180deg,
+  rgba(5, 11, 24, 0.12) 0%,
+  rgba(5, 11, 24, 0.32) 38%,
+  rgba(5, 11, 24, 0.78) 100%
+);

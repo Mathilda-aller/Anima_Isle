@@ -131,11 +131,11 @@ async function submitSelection() {
 }
 
 .title {
-  color: var(--text-primary);
+  color: $text-primary;
   font-size: 24px;
   line-height: 1.3;
-  text-shadow: var(--anima-shadow-title);
-  font-family: var(--anima-font-display);
+  text-shadow: $anima-shadow-title;
+  font-family: $anima-font-display;
 }
 
 .subtitle {
@@ -145,8 +145,8 @@ async function submitSelection() {
   font-size: 13px;
   letter-spacing: 1.6px;
   line-height: 1.2;
-  text-shadow: var(--anima-shadow-title);
-  font-family: var(--anima-font-display);
+  text-shadow: $anima-shadow-title;
+  font-family: $anima-font-display;
 }
 
 .style-card {
@@ -195,8 +195,8 @@ async function submitSelection() {
 .card-copy {
   position: absolute;
   top: 50px;
-  color: var(--text-primary);
-  text-shadow: var(--anima-shadow-title);
+  color: $text-primary;
+  text-shadow: $anima-shadow-title;
   z-index: 2;
 }
 
@@ -212,7 +212,7 @@ async function submitSelection() {
 
 .card-title {
   font-size: 20px;
-  font-family: var(--anima-font-display);
+  font-family: $anima-font-display;
 }
 
 .card-line {
@@ -245,11 +245,11 @@ async function submitSelection() {
   line-height: 34px;
   border-radius: 15px;
   border: 1px solid rgba(194, 213, 233, 0.9);
-  color: var(--text-primary);
+  color: $text-primary;
   font-size: 16px;
   background: transparent;
-  text-shadow: var(--anima-shadow-title);
-  font-family: var(--anima-font-display);
+  text-shadow: $anima-shadow-title;
+  font-family: $anima-font-display;
 }
 
 .confirm-btn::after {
@@ -273,7 +273,7 @@ async function submitSelection() {
   margin-top: 12px;
   display: block;
   text-align: center;
-  color: var(--anima-text-error);
+  color: $anima-text-error;
   font-size: 12px;
 }
 

@@ -237,8 +237,8 @@ function keepPrivate() {
 }
 
 .ticket-detail-page__state-text {
-  color: var(--anima-text-dim);
-  font-family: var(--anima-font-display);
+  color: $anima-text-dim;
+  font-family: $anima-font-display;
   font-size: 28rpx;
   text-align: center;
 }
@@ -281,8 +281,8 @@ function keepPrivate() {
   left: 12%;
   right: 12%;
   top: 82%;
-  color: var(--anima-text-error);
-  font-family: var(--anima-font-display);
+  color: $anima-text-error;
+  font-family: $anima-font-display;
   font-size: 22rpx;
   line-height: 1.6;
   text-align: center;
@@ -290,8 +290,8 @@ function keepPrivate() {
 }
 
 .ticket-detail-page__date {
-  color: var(--anima-text-muted);
-  font-family: var(--anima-font-display);
+  color: $anima-text-muted;
+  font-family: $anima-font-display;
   font-size: 24rpx;
   line-height: 58rpx;
   letter-spacing: 1rpx;
@@ -316,7 +316,7 @@ function keepPrivate() {
   width: 544rpx;
   height: 544rpx;
   border-radius: 50%;
-  background: var(--anima-glow-ticket);
+  background: $anima-glow-ticket;
   filter: blur(128rpx);
   mix-blend-mode: screen;
   opacity: 0.92;
@@ -359,7 +359,7 @@ function keepPrivate() {
 
 .ticket-detail-page__poem-line {
   color: #fff;
-  font-family: var(--anima-font-display);
+  font-family: $anima-font-display;
   font-size: 32rpx;
   line-height: 56rpx;
   letter-spacing: 1rpx;
@@ -401,8 +401,8 @@ function keepPrivate() {
 }
 
 .ticket-detail-page__action-label {
-  color: var(--anima-text-main);
-  font-family: var(--anima-font-display);
+  color: $anima-text-main;
+  font-family: $anima-font-display;
   font-size: 32rpx;
   line-height: 56rpx;
   letter-spacing: 1rpx;

@@ -129,7 +129,7 @@ const emit = defineEmits<{
   font-size: 48rpx;
   line-height: 72rpx;
   letter-spacing: 1rpx;
-  font-family: var(--anima-font-display);
+  font-family: $anima-font-display;
 }
 
 .register-success-modal__copy {
@@ -145,7 +145,7 @@ const emit = defineEmits<{
   font-size: 28rpx;
   line-height: 44rpx;
   letter-spacing: 1rpx;
-  font-family: var(--anima-font-display);
+  font-family: $anima-font-display;
 }
 
 .register-success-modal__button {
@@ -171,7 +171,7 @@ const emit = defineEmits<{
   font-size: 32rpx;
   line-height: 48rpx;
   letter-spacing: 1rpx;
-  font-family: var(--anima-font-display);
+  font-family: $anima-font-display;
 }
 
 .register-success-modal__close--hover,

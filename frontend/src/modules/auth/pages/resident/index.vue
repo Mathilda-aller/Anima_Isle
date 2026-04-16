@@ -168,7 +168,7 @@ function closeCommunityModal() {
   margin: 0 auto;
   overflow: hidden;
   background: linear-gradient(180deg, #072743 0%, #2c417a 49.52%, #3f4376 100%);
-  font-family: var(--anima-font-display);
+  font-family: $anima-font-display;
 }
 
 .resident-page__main {
@@ -264,12 +264,12 @@ function closeCommunityModal() {
 }
 
 .resident-page__topbar-title {
-  color: var(--anima-text-main);
+  color: $anima-text-main;
   font-size: 24px;
   line-height: 35px;
   letter-spacing: 0.5px;
   text-align: center;
-  text-shadow: var(--anima-shadow-title);
+  text-shadow: $anima-shadow-title;
 }
 
 .resident-page__hero {
@@ -279,7 +279,7 @@ function closeCommunityModal() {
 }
 
 .resident-page__hero-title {
-  color: var(--anima-text-strong);
+  color: $anima-text-strong;
   font-size: 24px;
   line-height: 28px;
   letter-spacing: 0.5px;
@@ -293,7 +293,7 @@ function closeCommunityModal() {
   display: flex;
   flex-direction: column;
   gap: 0;
-  color: var(--anima-text-strong);
+  color: $anima-text-strong;
   font-size: 16px;
   line-height: 28px;
   letter-spacing: 0.5px;
@@ -323,14 +323,14 @@ function closeCommunityModal() {
     radial-gradient(circle at 0 18%, rgba(18, 211, 255, 0.07) 0%, rgba(18, 211, 255, 0) 28%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.02) 100%),
     rgba(7, 17, 42, 0.22);
-  box-shadow: var(--anima-resident-shadow);
+  box-shadow: $anima-resident-shadow;
   backdrop-filter: blur(24rpx);
   padding: 17px 33px 12px;
 }
 
 .resident-page__panel-title {
   width: 100%;
-  color: var(--anima-text-strong);
+  color: $anima-text-strong;
   font-size: 16px;
   line-height: 28px;
   text-align: center;
@@ -384,7 +384,7 @@ function closeCommunityModal() {
 }
 
 .resident-page__faq-line {
-  color: var(--anima-text-strong);
+  color: $anima-text-strong;
   font-size: 10px;
   line-height: 20px;
   letter-spacing: 0.5px;
@@ -404,7 +404,7 @@ function closeCommunityModal() {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.015) 100%),
     rgba(0, 0, 0, 0);
-  color: var(--anima-text-strong);
+  color: $anima-text-strong;
   font-size: 16px;
   letter-spacing: 0.5px;
   text-shadow: 0 0 8rpx rgba(255, 255, 255, 0.5);
@@ -502,7 +502,7 @@ function closeCommunityModal() {
 
 .resident-page__community-tip {
   margin-top: 39px;
-  color: var(--anima-text-strong);
+  color: $anima-text-strong;
   font-size: 16px;
   line-height: 28px;
   letter-spacing: 0.5px;

@@ -170,20 +170,20 @@ function goPublish() {
 }
 
 .hello {
-  color: var(--anima-text-strong);
+  color: $anima-text-strong;
   font-size: 44rpx;
-  text-shadow: var(--anima-shadow-title);
-  font-family: var(--anima-font-display);
+  text-shadow: $anima-shadow-title;
+  font-family: $anima-font-display;
 }
 
 .greeting .en {
   margin-top: 8rpx;
   display: block;
-  color: var(--anima-text-muted);
+  color: $anima-text-muted;
   opacity: 0.95;
   letter-spacing: 4rpx;
   font-size: 30rpx;
-  font-family: var(--anima-font-display);
+  font-family: $anima-font-display;
 }
 
 .ip-stage {
@@ -304,22 +304,22 @@ function goPublish() {
 }
 
 .prompt .cn {
-  color: var(--anima-text-main);
+  color: $anima-text-main;
   font-size: 44rpx;
-  text-shadow: var(--anima-shadow-title);
+  text-shadow: $anima-shadow-title;
   white-space: normal;
   line-height: 1.3;
-  font-family: var(--anima-font-display);
+  font-family: $anima-font-display;
 }
 
 .prompt .en {
   margin-top: 14rpx;
   display: block;
   font-size: 30rpx;
-  color: var(--anima-text-soft);
+  color: $anima-text-soft;
   letter-spacing: 3rpx;
   line-height: 1.25;
-  font-family: var(--anima-font-display);
+  font-family: $anima-font-display;
 }
 
 .input-actions {
@@ -344,23 +344,23 @@ function goPublish() {
   position: relative;
   margin: 24rpx;
   padding: 18rpx;
-  border-radius: var(--anima-radius-lg);
-  background: var(--anima-surface-card);
+  border-radius: $anima-radius-lg;
+  background: $anima-surface-card;
   z-index: 3;
 }
 
 .ticket-image {
   width: 100%;
   height: 300rpx;
-  border-radius: var(--anima-radius-sm);
+  border-radius: $anima-radius-sm;
 }
 
 .ticket-poem {
   margin-top: 10rpx;
   display: block;
-  color: var(--text-primary);
+  color: $text-primary;
   white-space: pre-wrap;
-  font-family: var(--anima-font-display);
+  font-family: $anima-font-display;
 }
 
 .candidate-grid {
@@ -377,7 +377,7 @@ function goPublish() {
 .candidate image {
   width: 100%;
   height: 100%;
-  border-radius: var(--anima-radius-sm);
+  border-radius: $anima-radius-sm;
 }
 
 .ticket-actions {
@@ -389,13 +389,13 @@ function goPublish() {
 .small-btn {
   flex: 1;
   border: none;
-  border-radius: var(--anima-radius-sm);
-  background: var(--anima-button-primary);
-  color: var(--text-primary);
+  border-radius: $anima-radius-sm;
+  background: $anima-button-primary;
+  color: $text-primary;
 }
 
 .small-btn.ghost {
-  background: var(--anima-button-secondary);
+  background: $anima-button-secondary;
 }
 
 .error {
@@ -405,7 +405,7 @@ function goPublish() {
   bottom: 12rpx;
   z-index: 20;
   text-align: center;
-  color: var(--anima-text-error);
+  color: $anima-text-error;
 }
 
 .tap-hover {

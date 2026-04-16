@@ -56,6 +56,6 @@ const props = withDefaults(
   line-height: 44rpx;
   letter-spacing: 1rpx;
   text-shadow: 0 0 8rpx rgba(255, 255, 255, 0.37);
-  font-family: var(--anima-font-display);
+  font-family: $anima-font-display;
 }
 </style>

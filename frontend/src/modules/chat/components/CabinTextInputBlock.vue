@@ -114,21 +114,21 @@ function onInput(event: Event) {
   max-height: 220rpx;
   padding: 6rpx 10.48% 8rpx 0;
   background: transparent;
-  color: var(--anima-text-main);
+  color: $anima-text-main;
   font-size: 32rpx;
   line-height: 56rpx;
   text-align: center;
-  text-shadow: var(--anima-shadow-title);
-  font-family: var(--anima-font-display);
+  text-shadow: $anima-shadow-title;
+  font-family: $anima-font-display;
   letter-spacing: 1rpx;
   overflow-y: auto;
 }
 
 .cabin-text-input-block__placeholder {
-  color: var(--anima-text-dim);
+  color: $anima-text-dim;
   text-align: center;
-  text-shadow: var(--anima-shadow-title);
-  font-family: var(--anima-font-display);
+  text-shadow: $anima-shadow-title;
+  font-family: $anima-font-display;
   font-size: 32rpx;
   line-height: 56rpx;
   letter-spacing: 1rpx;

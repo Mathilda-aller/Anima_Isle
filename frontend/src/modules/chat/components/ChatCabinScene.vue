@@ -167,7 +167,7 @@ const interactionStyle = computed(() => ({
   width: 67.66%;
   height: 31.12%;
   border-radius: 9999rpx;
-  background: var(--anima-glow-cabin-halo);
+  background: $anima-glow-cabin-halo;
   filter: blur(64rpx);
   opacity: 0.95;
   z-index: 1;
@@ -196,12 +196,12 @@ const interactionStyle = computed(() => ({
 
 .chat-cabin-scene__quote {
   display: block;
-  color: var(--anima-text-main);
+  color: $anima-text-main;
   font-size: 30rpx;
   line-height: 1.75;
   letter-spacing: 1rpx;
-  text-shadow: var(--anima-shadow-title);
-  font-family: var(--anima-font-display);
+  text-shadow: $anima-shadow-title;
+  font-family: $anima-font-display;
   white-space: pre-wrap;
 }
 
@@ -220,12 +220,12 @@ const interactionStyle = computed(() => ({
 
 .chat-cabin-scene__center-quote {
   display: block;
-  color: var(--anima-text-main);
+  color: $anima-text-main;
   font-size: 34rpx;
   line-height: 1.78;
   letter-spacing: 1.2rpx;
   text-shadow: 0 0 18rpx rgba(230, 248, 255, 0.36);
-  font-family: var(--anima-font-display);
+  font-family: $anima-font-display;
   white-space: pre-wrap;
 }
 

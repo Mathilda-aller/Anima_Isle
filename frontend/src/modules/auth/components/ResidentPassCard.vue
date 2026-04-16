@@ -62,8 +62,8 @@ const props = withDefaults(
   position: absolute;
   inset: 0;
   padding: 10rpx 12rpx 12rpx;
-  color: var(--anima-text-main);
-  font-family: var(--anima-font-display);
+  color: $anima-text-main;
+  font-family: $anima-font-display;
 }
 
 .resident-pass-card__brand {
@@ -73,7 +73,7 @@ const props = withDefaults(
   font-size: 10rpx;
   line-height: 1.2;
   opacity: 0.4;
-  text-shadow: var(--anima-shadow-title);
+  text-shadow: $anima-shadow-title;
 }
 
 .resident-pass-card__meta {
@@ -82,7 +82,7 @@ const props = withDefaults(
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--anima-text-strong);
+  color: $anima-text-strong;
   text-align: center;
   letter-spacing: 1rpx;
 }

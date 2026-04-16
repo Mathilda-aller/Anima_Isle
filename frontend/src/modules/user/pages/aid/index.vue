@@ -185,7 +185,7 @@ function callSupportLine(phone: string) {
   width: 71.4%;
   transform: translateX(-50%);
   color: #c5d3e0;
-  font-family: var(--anima-font-display);
+  font-family: $anima-font-display;
   font-size: 32rpx;
   line-height: 80rpx;
   letter-spacing: 2.56rpx;
@@ -240,7 +240,7 @@ function callSupportLine(phone: string) {
   align-items: center;
   justify-content: center;
   color: #1e293b;
-  font-family: var(--anima-font-display);
+  font-family: $anima-font-display;
   font-size: 32rpx;
   line-height: 54rpx;
   letter-spacing: 1.28rpx;
@@ -273,14 +273,14 @@ function callSupportLine(phone: string) {
 .aid-page__line-label {
   max-width: 48%;
   color: #94a3b8;
-  font-family: var(--anima-font-display);
+  font-family: $anima-font-display;
   font-size: 24rpx;
   line-height: 40rpx;
 }
 
 .aid-page__line-phone {
   color: #cbd5e1;
-  font-family: var(--anima-font-display);
+  font-family: $anima-font-display;
   font-size: 24rpx;
   line-height: 48rpx;
   letter-spacing: 1.44rpx;
@@ -331,7 +331,7 @@ function callSupportLine(phone: string) {
   width: 73.89%;
   transform: translateX(-50%);
   color: #94a3b8;
-  font-family: var(--anima-font-display);
+  font-family: $anima-font-display;
   font-size: 32rpx;
   line-height: 52rpx;
   letter-spacing: 1.6rpx;

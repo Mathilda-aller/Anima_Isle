@@ -293,7 +293,7 @@ function openVoiceInput() {
   left: 8%;
   right: 8%;
   bottom: 6%;
-  color: var(--anima-text-error);
+  color: $anima-text-error;
   font-size: 24rpx;
   text-align: center;
   z-index: 4;

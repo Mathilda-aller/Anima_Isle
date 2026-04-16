@@ -295,7 +295,7 @@ function toggleCard() {
 
 .ticket-viewer__date {
   color: rgba(209, 213, 220, 0.92);
-  font-family: var(--anima-font-display);
+  font-family: $anima-font-display;
   font-size: 24rpx;
   line-height: 58rpx;
   letter-spacing: 1rpx;
@@ -317,7 +317,7 @@ function toggleCard() {
 
 .ticket-viewer__poem-line {
   color: #fff;
-  font-family: var(--anima-font-display);
+  font-family: $anima-font-display;
   font-size: 32rpx;
   line-height: 56rpx;
   letter-spacing: 1rpx;
@@ -346,7 +346,7 @@ function toggleCard() {
 
 .ticket-viewer__weekday {
   color: rgba(209, 213, 220, 0.9);
-  font-family: var(--anima-font-display);
+  font-family: $anima-font-display;
   font-size: 24rpx;
   line-height: 35rpx;
   letter-spacing: 3rpx;
@@ -357,7 +357,7 @@ function toggleCard() {
   margin-top: 12rpx;
   display: block;
   color: #fff;
-  font-family: var(--anima-font-display);
+  font-family: $anima-font-display;
   font-size: 52rpx;
   line-height: 1.1;
   letter-spacing: 1rpx;
@@ -367,7 +367,7 @@ function toggleCard() {
   margin-top: 74rpx;
   display: block;
   color: rgba(255, 255, 255, 0.86);
-  font-family: var(--anima-font-display);
+  font-family: $anima-font-display;
   font-size: 34rpx;
   line-height: 56rpx;
   letter-spacing: 1rpx;
@@ -417,7 +417,7 @@ function toggleCard() {
 
 .ticket-viewer__meta-text {
   color: rgba(209, 213, 220, 0.92);
-  font-family: var(--anima-font-display);
+  font-family: $anima-font-display;
   font-size: 24rpx;
   line-height: 35rpx;
   letter-spacing: 1rpx;
@@ -432,8 +432,8 @@ function toggleCard() {
 }
 
 .ticket-viewer__state-text {
-  color: var(--anima-text-dim);
-  font-family: var(--anima-font-display);
+  color: $anima-text-dim;
+  font-family: $anima-font-display;
   font-size: 28rpx;
   text-align: center;
 }

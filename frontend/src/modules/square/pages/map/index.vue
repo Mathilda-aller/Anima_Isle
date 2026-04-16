@@ -168,13 +168,13 @@ function selectIsland(islandId: IslandId) {
 }
 
 .square-map-page__title {
-  color: var(--anima-text-main);
+  color: $anima-text-main;
   font-size: 48rpx;
   line-height: 70rpx;
   letter-spacing: 1rpx;
   text-align: center;
-  text-shadow: var(--anima-shadow-title);
-  font-family: var(--anima-font-display);
+  text-shadow: $anima-shadow-title;
+  font-family: $anima-font-display;
 }
 
 .square-map-page__scene {

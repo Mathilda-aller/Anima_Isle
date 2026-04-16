@@ -53,19 +53,19 @@ defineProps<{
 
 .title {
   margin-top: 56rpx;
-  color: var(--anima-text-strong);
-  font-size: var(--anima-font-title);
-  text-shadow: var(--anima-shadow-title);
-  font-family: var(--anima-font-display);
+  color: $anima-text-strong;
+  font-size: $anima-font-title;
+  text-shadow: $anima-shadow-title;
+  font-family: $anima-font-display;
   text-align: center;
 }
 
 .subtitle {
   margin-top: 10rpx;
-  color: var(--anima-text-muted);
+  color: $anima-text-muted;
   letter-spacing: 3rpx;
-  font-size: var(--anima-font-subtitle);
-  font-family: var(--anima-font-display);
+  font-size: $anima-font-subtitle;
+  font-family: $anima-font-display;
   text-align: center;
 }
 
@@ -88,7 +88,7 @@ defineProps<{
 
 .error {
   margin-top: 18rpx;
-  color: var(--anima-text-error);
+  color: $anima-text-error;
   text-align: center;
 }
 </style>

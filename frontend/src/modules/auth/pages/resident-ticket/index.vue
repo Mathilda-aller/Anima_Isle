@@ -132,7 +132,7 @@ function goBack() {
   margin: 0 auto;
   overflow: hidden;
   background: linear-gradient(180deg, #072743 0%, #2c417a 49.52%, #3f4376 100%);
-  font-family: var(--anima-font-display);
+  font-family: $anima-font-display;
 }
 
 /* Glow: blurred cyan radial at top-right — Figma: left 197/402=49%, top 23/874=2.63%, size 272/402=67.66% */
@@ -143,7 +143,7 @@ function goBack() {
   width: 67.66%;
   aspect-ratio: 1 / 1;
   border-radius: 50%;
-  background: var(--anima-glow-ticket);
+  background: $anima-glow-ticket;
   filter: blur(64rpx);
   pointer-events: none;
 }
@@ -161,12 +161,12 @@ function goBack() {
 
 /* Title: left-aligned, 24px/35px — matches Figma node 1:414 */
 .resident-ticket-page__title {
-  color: var(--anima-text-main);
-  font-family: var(--anima-font-display);
+  color: $anima-text-main;
+  font-family: $anima-font-display;
   font-size: 24px;
   line-height: 35px;
   letter-spacing: 0.5px;
-  text-shadow: var(--anima-shadow-title);
+  text-shadow: $anima-shadow-title;
 }
 
 /* Share icon: 24px — matches Figma node 1:415 (size-[23.993px]) */

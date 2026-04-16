@@ -6,6 +6,13 @@ import { fileURLToPath, URL } from "node:url";
 export default defineConfig({
   base: "/",
   plugins: [uni()],
+  css: {
+    preprocessorOptions: {
+      scss: {
+        additionalData: '@import "@/shared/styles/tokens.scss";',
+      },
+    },
+  },
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),

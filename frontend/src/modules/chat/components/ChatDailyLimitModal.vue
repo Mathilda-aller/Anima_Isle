@@ -130,11 +130,11 @@ const emit = defineEmits<{
 
 .chat-daily-limit-modal__title {
   margin-top: 48rpx;
-  color: var(--anima-text-strong);
+  color: $anima-text-strong;
   font-size: 48rpx;
   line-height: 72rpx;
   letter-spacing: 1rpx;
-  font-family: var(--anima-font-display);
+  font-family: $anima-font-display;
 }
 
 .chat-daily-limit-modal__copy {
@@ -150,7 +150,7 @@ const emit = defineEmits<{
   font-size: 28rpx;
   line-height: 44rpx;
   letter-spacing: 1rpx;
-  font-family: var(--anima-font-display);
+  font-family: $anima-font-display;
 }
 
 .chat-daily-limit-modal__button {
@@ -172,11 +172,11 @@ const emit = defineEmits<{
 }
 
 .chat-daily-limit-modal__button-text {
-  color: var(--anima-text-main);
+  color: $anima-text-main;
   font-size: 32rpx;
   line-height: 48rpx;
   letter-spacing: 1rpx;
-  font-family: var(--anima-font-display);
+  font-family: $anima-font-display;
 }
 
 .chat-daily-limit-modal__button--hover {

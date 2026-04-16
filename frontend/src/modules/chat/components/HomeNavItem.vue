@@ -33,10 +33,10 @@ defineProps<{
 .nav-label {
   font-size: 24rpx;
   line-height: 1.15;
-  color: var(--anima-text-main);
-  text-shadow: var(--anima-shadow-title);
+  color: $anima-text-main;
+  text-shadow: $anima-shadow-title;
   text-align: center;
-  font-family: var(--anima-font-display);
+  font-family: $anima-font-display;
   letter-spacing: 0.02em;
   white-space: nowrap;
 }

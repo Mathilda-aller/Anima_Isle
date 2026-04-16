@@ -284,20 +284,20 @@ const rippleStyle = computed(() => {
 }
 
 .cabin-voice-control-block__status-text {
-  color: var(--anima-text-main);
+  color: $anima-text-main;
   font-size: 30rpx;
   line-height: 1.7;
-  text-shadow: var(--anima-shadow-title);
-  font-family: var(--anima-font-display);
+  text-shadow: $anima-shadow-title;
+  font-family: $anima-font-display;
   text-align: center;
 }
 
 .cabin-voice-control-block__duration {
-  color: var(--anima-text-dim);
+  color: $anima-text-dim;
   font-size: 24rpx;
   line-height: 1.5;
   letter-spacing: 1rpx;
-  font-family: var(--anima-font-display);
+  font-family: $anima-font-display;
 }
 
 .cabin-voice-control-block__actions {

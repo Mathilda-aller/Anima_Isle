@@ -43,10 +43,10 @@ defineProps<{
 
 .label {
   margin-top: 12rpx;
-  font-size: var(--anima-font-body);
-  color: var(--anima-text-main);
+  font-size: $anima-font-body;
+  color: $anima-text-main;
   letter-spacing: 6rpx;
   z-index: 1;
-  font-family: var(--anima-font-display);
+  font-family: $anima-font-display;
 }
 </style>

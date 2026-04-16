@@ -117,7 +117,7 @@ const monthDayLabel = computed(() => {
   left: 40rpx;
   bottom: 52rpx;
   color: #fff;
-  font-family: var(--anima-font-display);
+  font-family: $anima-font-display;
   font-size: 58rpx;
   line-height: 1;
   letter-spacing: 1rpx;
@@ -136,7 +136,7 @@ const monthDayLabel = computed(() => {
 
 .ticket-timeline-card__poem-line {
   color: #fff;
-  font-family: var(--anima-font-display);
+  font-family: $anima-font-display;
   font-size: 24rpx;
   line-height: 40rpx;
   letter-spacing: 1rpx;

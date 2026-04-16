@@ -246,7 +246,7 @@ async function sendHug() {
 
 .square-hug-page__date {
   color: rgba(209, 213, 220, 0.92);
-  font-family: var(--anima-font-display);
+  font-family: $anima-font-display;
   font-size: 24rpx;
   line-height: 58rpx;
   text-align: center;
@@ -314,7 +314,7 @@ async function sendHug() {
 
 .square-hug-page__poem-line {
   color: #ffffff;
-  font-family: var(--anima-font-display);
+  font-family: $anima-font-display;
   font-size: 32rpx;
   line-height: 68rpx;
   text-align: center;
@@ -340,7 +340,7 @@ async function sendHug() {
 
 .square-hug-page__hug-count {
   color: rgba(217, 217, 217, 0.81);
-  font-family: var(--anima-font-display);
+  font-family: $anima-font-display;
   font-size: 24rpx;
   line-height: 44rpx;
   text-align: center;
@@ -357,7 +357,7 @@ async function sendHug() {
   border-radius: 999rpx;
   background: rgba(0, 0, 0, 0);
   color: rgba(230, 248, 255, 0.96);
-  font-family: var(--anima-font-display);
+  font-family: $anima-font-display;
   font-size: 32rpx;
   line-height: 44rpx;
   white-space: nowrap;
@@ -384,7 +384,7 @@ async function sendHug() {
 .square-hug-page__state-text,
 .square-hug-page__state-tag {
   color: rgba(255, 255, 255, 0.92);
-  font-family: var(--anima-font-display);
+  font-family: $anima-font-display;
   font-size: 28rpx;
   line-height: 42rpx;
   text-align: center;

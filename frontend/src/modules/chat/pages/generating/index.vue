@@ -491,26 +491,26 @@ onBeforeUnmount(() => {
 .chat-generating__response-text {
   display: block;
   width: 99.25%;
-  color: var(--anima-text-main);
+  color: $anima-text-main;
   font-size: 32rpx;
   line-height: 56rpx;
   letter-spacing: 1rpx;
   text-align: center;
   white-space: pre-wrap;
   text-shadow: 0 0 8rpx rgba(255, 255, 255, 0.5);
-  font-family: var(--anima-font-display);
+  font-family: $anima-font-display;
 }
 
 .chat-generating__response-subtitle {
   display: block;
   width: 99.25%;
-  color: var(--anima-text-main);
+  color: $anima-text-main;
   font-size: 36rpx;
   line-height: 56rpx;
   letter-spacing: 1rpx;
   text-align: center;
   text-shadow: 0 0 8rpx rgba(255, 255, 255, 0.5);
-  font-family: var(--anima-font-display);
+  font-family: $anima-font-display;
 }
 
 .chat-generating__transition-copy {
@@ -529,25 +529,25 @@ onBeforeUnmount(() => {
 .chat-generating__transition-title {
   display: block;
   width: 99.25%;
-  color: var(--anima-text-main);
+  color: $anima-text-main;
   font-size: 32rpx;
   line-height: 56rpx;
   letter-spacing: 1rpx;
   text-align: center;
   text-shadow: 0 0 8rpx rgba(255, 255, 255, 0.5);
-  font-family: var(--anima-font-display);
+  font-family: $anima-font-display;
 }
 
 .chat-generating__transition-text {
   display: block;
   width: 99.25%;
-  color: var(--anima-text-main);
+  color: $anima-text-main;
   font-size: 36rpx;
   line-height: 56rpx;
   letter-spacing: 1rpx;
   text-align: center;
   text-shadow: 0 0 8rpx rgba(255, 255, 255, 0.5);
-  font-family: var(--anima-font-display);
+  font-family: $anima-font-display;
 }
 
 .chat-generating__title {
@@ -556,13 +556,13 @@ onBeforeUnmount(() => {
   top: 17.28%;
   width: 240rpx;
   transform: translateX(-50%);
-  color: var(--anima-text-main);
+  color: $anima-text-main;
   font-size: 48rpx;
   line-height: 56rpx;
   letter-spacing: 1rpx;
   text-align: center;
   text-shadow: 0 0 8rpx rgba(255, 255, 255, 0.5);
-  font-family: var(--anima-font-display);
+  font-family: $anima-font-display;
   z-index: 3;
   white-space: nowrap;
 }
@@ -588,7 +588,7 @@ onBeforeUnmount(() => {
   white-space: pre-wrap;
   text-shadow: 0 0 8rpx rgba(230, 248, 255, 0.1);
   filter: blur(1rpx);
-  font-family: var(--anima-font-display);
+  font-family: $anima-font-display;
 }
 
 .chat-generating__error {
@@ -596,7 +596,7 @@ onBeforeUnmount(() => {
   left: 8%;
   right: 8%;
   bottom: 7%;
-  color: var(--anima-text-error);
+  color: $anima-text-error;
   font-size: 24rpx;
   line-height: 1.7;
   text-align: center;

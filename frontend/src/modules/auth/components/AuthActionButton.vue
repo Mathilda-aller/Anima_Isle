@@ -34,16 +34,16 @@ const emit = defineEmits<{
 }
 
 .login-btn[disabled] {
-  opacity: var(--anima-button-disabled);
+  opacity: $anima-button-disabled;
 }
 
 .login-btn-text {
-  color: var(--anima-text-main);
+  color: $anima-text-main;
   font-size: 32rpx;
   letter-spacing: 1rpx;
   line-height: 1;
-  text-shadow: var(--anima-shadow-title);
-  font-family: var(--anima-font-display);
+  text-shadow: $anima-shadow-title;
+  font-family: $anima-font-display;
 }
 
 .auth-btn-hover {

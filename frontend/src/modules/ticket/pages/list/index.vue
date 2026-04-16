@@ -116,13 +116,13 @@ function goBack() {
 }
 
 .ticket-list-page__title {
-  color: var(--anima-text-main);
-  font-family: var(--anima-font-display);
+  color: $anima-text-main;
+  font-family: $anima-font-display;
   font-size: 48rpx;
   line-height: 70rpx;
   letter-spacing: 1rpx;
   text-align: center;
-  text-shadow: var(--anima-shadow-title);
+  text-shadow: $anima-shadow-title;
 }
 
 .ticket-list-page__timeline {
@@ -146,8 +146,8 @@ function goBack() {
 
 .ticket-list-page__state-text,
 .ticket-list-page__loading-text {
-  color: var(--anima-text-dim);
-  font-family: var(--anima-font-display);
+  color: $anima-text-dim;
+  font-family: $anima-font-display;
   font-size: 28rpx;
   line-height: 48rpx;
   text-align: center;

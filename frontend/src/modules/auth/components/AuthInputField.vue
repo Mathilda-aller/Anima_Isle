@@ -38,35 +38,35 @@ const isFocused = ref(false);
 .field-wrap {
   width: 100%;
   height: 86rpx;
-  border-radius: var(--anima-radius-pill);
-  background: var(--anima-surface-field);
-  box-shadow: var(--anima-shadow-field-soft);
-  border: 1rpx solid var(--anima-line-field);
+  border-radius: $anima-radius-pill;
+  background: $anima-surface-field;
+  box-shadow: $anima-shadow-field-soft;
+  border: 1rpx solid $anima-line-field;
   overflow: hidden;
   transition: box-shadow 0.22s ease, border-color 0.22s ease, background-color 0.22s ease;
 }
 
 .field-wrap--focused {
-  background: var(--anima-surface-field-focus);
-  border-color: var(--anima-line-focus);
-  box-shadow: var(--anima-shadow-field-focus);
+  background: $anima-surface-field-focus;
+  border-color: $anima-line-focus;
+  box-shadow: $anima-shadow-field-focus;
 }
 
 .field {
   width: 100%;
   height: 100%;
   padding: 0 46rpx;
-  color: var(--anima-text-main);
-  font-size: var(--anima-font-body);
+  color: $anima-text-main;
+  font-size: $anima-font-body;
   letter-spacing: 2rpx;
-  font-family: var(--anima-font-display);
+  font-family: $anima-font-display;
   background: transparent;
 }
 
 .field-placeholder {
-  color: var(--anima-text-placeholder);
-  font-size: var(--anima-font-body);
+  color: $anima-text-placeholder;
+  font-size: $anima-font-body;
   letter-spacing: 2.4rpx;
-  font-family: var(--anima-font-display);
+  font-family: $anima-font-display;
 }
 </style>

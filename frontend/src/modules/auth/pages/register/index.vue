@@ -114,13 +114,13 @@ const {
   flex-shrink: 0;
   width: 210rpx;
   height: 86rpx;
-  border-radius: var(--anima-radius-pill);
+  border-radius: $anima-radius-pill;
   border: none;
   background:
-    var(--anima-button-code-sheen),
-    var(--anima-surface-field-strong);
-  box-shadow: var(--anima-shadow-field-soft);
-  border: 1rpx solid var(--anima-line-code-button);
+    $anima-button-code-sheen,
+    $anima-surface-field-strong;
+  box-shadow: $anima-shadow-field-soft;
+  border: 1rpx solid $anima-line-code-button;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -133,17 +133,17 @@ const {
 }
 
 .code-row__button[disabled] {
-  opacity: var(--anima-button-disabled);
+  opacity: $anima-button-disabled;
 }
 
 .code-row__button-text {
-  color: var(--anima-text-float);
+  color: $anima-text-float;
   font-size: 24rpx;
   letter-spacing: 1rpx;
   line-height: 1.2;
   text-align: center;
   text-shadow: 0 0 8rpx rgba(255, 255, 255, 0.22);
-  font-family: var(--anima-font-display);
+  font-family: $anima-font-display;
 }
 
 .btn-row {

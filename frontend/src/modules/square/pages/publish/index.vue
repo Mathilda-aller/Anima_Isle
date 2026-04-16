@@ -254,12 +254,10 @@ function goBack() {
 </template>
 
 <style scoped lang="scss">
-.publish-page__inner {
-  --publish-title-top: 15.1%;
-  --publish-cover-top: 22.6%;
-  --publish-actions-top: 87.25%;
-  --publish-action-gap: 40rpx;
-}
+$publish-title-top: 15.1%;
+$publish-cover-top: 22.6%;
+$publish-actions-top: 87.25%;
+$publish-action-gap: 40rpx;
 
 .publish-page__inner {
   position: relative;
@@ -289,8 +287,8 @@ function goBack() {
 }
 
 .publish-page__state-text {
-  color: var(--anima-text-dim);
-  font-family: var(--anima-font-display);
+  color: $anima-text-dim;
+  font-family: $anima-font-display;
   font-size: 28rpx;
   text-align: center;
 }
@@ -326,10 +324,10 @@ function goBack() {
 .publish-page__title {
   position: absolute;
   left: 12.2%;
-  top: var(--publish-title-top);
+  top: $publish-title-top;
   width: 79.4%;
-  color: var(--anima-text-main);
-  font-family: var(--anima-font-display);
+  color: $anima-text-main;
+  font-family: $anima-font-display;
   font-size: 32rpx;
   line-height: 56rpx;
   letter-spacing: 1rpx;
@@ -342,7 +340,7 @@ function goBack() {
 .publish-page__cover-shell {
   position: absolute;
   left: 26.55%;
-  top: var(--publish-cover-top);
+  top: $publish-cover-top;
   width: 47.41%;
   height: 30.32%;
   display: flex;
@@ -407,7 +405,7 @@ function goBack() {
 .publish-page__bubble-label {
   max-width: 88%;
   color: #fff;
-  font-family: var(--anima-font-display);
+  font-family: $anima-font-display;
   line-height: 1.35;
   letter-spacing: 1rpx;
   text-align: center;
@@ -417,12 +415,12 @@ function goBack() {
 .publish-page__actions {
   position: absolute;
   left: 50%;
-  top: var(--publish-actions-top);
+  top: $publish-actions-top;
   transform: translateX(-50%);
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  gap: var(--publish-action-gap);
+  gap: $publish-action-gap;
 }
 
 .publish-page__publish-action {
@@ -442,7 +440,7 @@ function goBack() {
 
 .publish-page__publish-action--disabled,
 .publish-page__reroll--disabled {
-  opacity: var(--anima-button-disabled);
+  opacity: $anima-button-disabled;
 }
 
 .publish-page__publish-icon {
@@ -451,8 +449,8 @@ function goBack() {
 }
 
 .publish-page__publish-label {
-  color: var(--anima-text-main);
-  font-family: var(--anima-font-display);
+  color: $anima-text-main;
+  font-family: $anima-font-display;
   font-size: 32rpx;
   line-height: 56rpx;
   letter-spacing: 1rpx;
@@ -474,8 +472,8 @@ function goBack() {
 }
 
 .publish-page__reroll-text {
-  color: var(--anima-text-dim);
-  font-family: var(--anima-font-display);
+  color: $anima-text-dim;
+  font-family: $anima-font-display;
   font-size: 24rpx;
   line-height: 56rpx;
   letter-spacing: 1rpx;

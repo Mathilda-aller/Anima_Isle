@@ -25,10 +25,10 @@ const emit = defineEmits<{
 }
 
 .switch-text {
-  color: var(--anima-text-dim);
+  color: $anima-text-dim;
   font-size: 40rpx;
-  text-shadow: var(--anima-shadow-title);
-  font-family: var(--anima-font-display);
+  text-shadow: $anima-shadow-title;
+  font-family: $anima-font-display;
 }
 
 .switch-line {

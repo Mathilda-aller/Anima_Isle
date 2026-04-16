@@ -115,8 +115,8 @@ function handleImageError() {
   top: 15.9%;
   left: 18.6%;
   width: 79.4%;
-  color: var(--anima-text-main);
-  font-family: var(--anima-font-display);
+  color: $anima-text-main;
+  font-family: $anima-font-display;
   font-size: 32rpx;
   line-height: 56rpx;
   letter-spacing: 1rpx;
@@ -173,8 +173,8 @@ function handleImageError() {
 }
 
 .chat-ticket-reveal-card__placeholder-text {
-  color: var(--anima-text-dim);
-  font-family: var(--anima-font-display);
+  color: $anima-text-dim;
+  font-family: $anima-font-display;
   font-size: 28rpx;
   letter-spacing: 2rpx;
 }
@@ -215,8 +215,8 @@ function handleImageError() {
 }
 
 .chat-ticket-reveal-card__accept-text {
-  color: var(--anima-text-main);
-  font-family: var(--anima-font-display);
+  color: $anima-text-main;
+  font-family: $anima-font-display;
   font-size: 32rpx;
   line-height: 32rpx;
   letter-spacing: 1rpx;
@@ -242,8 +242,8 @@ function handleImageError() {
 }
 
 .chat-ticket-reveal-card__reroll-text {
-  color: var(--anima-text-dim);
-  font-family: var(--anima-font-display);
+  color: $anima-text-dim;
+  font-family: $anima-font-display;
   font-size: 24rpx;
   line-height: 40rpx;
   letter-spacing: 1rpx;
@@ -251,7 +251,7 @@ function handleImageError() {
 
 .chat-ticket-reveal-card__accept--disabled,
 .chat-ticket-reveal-card__reroll--disabled {
-  opacity: var(--anima-button-disabled);
+  opacity: $anima-button-disabled;
 }
 
 .chat-ticket-reveal-card__button--hover {
