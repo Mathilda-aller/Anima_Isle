@@ -158,7 +158,7 @@ function closeCommunityModal() {
   position: relative;
   min-height: 100vh;
   overflow: hidden;
-  background: var(--anima-night-gradient);
+  background: linear-gradient(180deg, #072743 0%, #2c417a 49.52%, #3f4376 100%);
 }
 
 .resident-page__shell {
@@ -167,7 +167,7 @@ function closeCommunityModal() {
   min-height: 100vh;
   margin: 0 auto;
   overflow: hidden;
-  background: var(--anima-night-gradient);
+  background: linear-gradient(180deg, #072743 0%, #2c417a 49.52%, #3f4376 100%);
   font-family: var(--anima-font-display);
 }
 

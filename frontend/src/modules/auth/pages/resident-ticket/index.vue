@@ -122,7 +122,7 @@ function goBack() {
   position: relative;
   min-height: 100vh;
   overflow: hidden;
-  background: var(--anima-night-gradient);
+  background: linear-gradient(180deg, #072743 0%, #2c417a 49.52%, #3f4376 100%);
 }
 
 .resident-ticket-page__shell {
@@ -131,7 +131,7 @@ function goBack() {
   min-height: 100vh;
   margin: 0 auto;
   overflow: hidden;
-  background: var(--anima-night-gradient);
+  background: linear-gradient(180deg, #072743 0%, #2c417a 49.52%, #3f4376 100%);
   font-family: var(--anima-font-display);
 }
 

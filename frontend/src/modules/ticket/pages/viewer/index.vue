@@ -260,7 +260,7 @@ function toggleCard() {
 .ticket-viewer__backdrop {
   background:
     radial-gradient(circle at 78% 16%, rgba(116, 212, 234, 0.4) 0%, rgba(65, 120, 132, 0) 28%),
-    var(--anima-night-gradient);
+    linear-gradient(180deg, #072743 0%, #2c417a 49.52%, #3f4376 100%);
 }
 
 .ticket-viewer__image-gradient {

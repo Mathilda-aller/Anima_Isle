@@ -129,7 +129,7 @@ function selectIsland(islandId: IslandId) {
   position: relative;
   min-height: 100vh;
   overflow: hidden;
-  background: var(--anima-night-gradient);
+  background: linear-gradient(180deg, #072743 0%, #2c417a 49.52%, #3f4376 100%);
 }
 
 .square-map-page__inner {
