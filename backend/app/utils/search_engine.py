@@ -16,7 +16,7 @@ COLLECTION_NAME = "anima_isle"
 IMAGE_BASE_URL = os.getenv("IMAGE_BASE_URL", "https://anima-isle-images.oss-cn-beijing.aliyuncs.com").rstrip("/")
 
 # COSINE 分数阈值，低于则认为不够相关
-MIN_DISTANCE_THRESHOLD = 0.35
+MIN_DISTANCE_THRESHOLD = 0.30
 
 client: Optional[MilvusClient] = None
 client_init_attempted = False
