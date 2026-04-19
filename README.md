@@ -169,59 +169,6 @@
 
 换句话说，AI 既提升了内容生产效率，也创造了产品本身成立的核心价值。
 
-## 本地开发
-
-### 1. 后端
-
-项目后端必须使用仓库内虚拟环境 `backend/.venv`。
-
-```bash
-cd backend
-.venv/bin/pip install -r requirements.txt
-.venv/bin/uvicorn app.main:app --reload
-```
-
-后端默认会读取 `.env` 中的配置，请先参考 [backend/.env.example](/root/Anima_Isle_Root/backend/.env.example) 补齐环境变量。
-
-### 2. 前端
-
-```bash
-cd frontend
-npm install
-npm run dev:h5
-```
-
-前端环境变量请参考 [frontend/.env.example](/root/Anima_Isle_Root/frontend/.env.example)。
-
-## 向量库初始化
-
-首次使用前，需要先创建 Zilliz 集合并导入图片素材元数据：
-
-```bash
-cd backend
-.venv/bin/python scripts/init_zilliz.py
-.venv/bin/python scripts/ingest_data.py
-```
-
-其中 `ingest_data.py` 会读取 `backend/data/image_metadata.xlsx`，为素材生成向量并写入 Zilliz Cloud。
-
-## 测试
-
-后端测试：
-
-```bash
-cd backend
-.venv/bin/pytest
-```
-
-前端类型检查与测试：
-
-```bash
-cd frontend
-npm run type-check
-npm run test
-```
-
 ## 已实现的工程特性
 
 - JWT 鉴权与邮箱注册登录
