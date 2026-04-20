@@ -10,6 +10,7 @@ from typing import Any, AsyncIterator, Awaitable, Callable, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import StreamingResponse
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app import crud, deps, models, schemas
@@ -43,6 +44,11 @@ def _map_generation_error(exc: Exception) -> str:
     if "search" in message or "zilliz" in message or "milvus" in message:
         return "vector_search_failed"
     return "generation_failed"
+
+
+def _is_mysql_unsupported_character_error(exc: Exception) -> bool:
+    message = str(exc).lower()
+    return "incorrect string value" in message or "1366" in message
 
 
 def _stage_start(
@@ -551,12 +557,29 @@ async def _save_q2_and_build_context(
     breakdown: Dict[str, int],
 ) -> tuple[models.ChatSession, str]:
     save_q2_started = _stage_start(trace_id, session.session_id, user_id, "save_q2")
-    session = crud.save_chat_answer(
-        db,
-        session_id=session.session_id,
-        answer=reply_req.content,
-        turn_index=2,
-    )
+    try:
+        session = crud.save_chat_answer(
+            db,
+            session_id=session.session_id,
+            answer=reply_req.content,
+            turn_index=2,
+        )
+    except SQLAlchemyError as exc:
+        if _is_mysql_unsupported_character_error(exc):
+            _stage_end(
+                trace_id,
+                session.session_id,
+                user_id,
+                breakdown,
+                "save_q2",
+                save_q2_started,
+                success=False,
+                error_code="chat_contains_unsupported_characters",
+                error_type=type(exc).__name__,
+                error_message=str(exc),
+            )
+            raise HTTPException(status_code=400, detail="chat_contains_unsupported_characters") from exc
+        raise
     _stage_end(trace_id, session.session_id, user_id, breakdown, "save_q2", save_q2_started)
     full_context = f"{session.turn_1_answer}。{session.turn_2_answer}"
     return session, full_context
@@ -941,7 +964,24 @@ async def reply_chat(
         q2_list = QUESTIONS_DB.get("turn_2", ["还能再多说一点吗？"])
         next_q = random.choice(q2_list)
         save_q1_started = _stage_start(trace_id, session.session_id, current_user.id, "save_q1")
-        crud.update_chat_step(db, session_id=session.session_id, step=1, answer=reply_req.content, turn_index=1)
+        try:
+            crud.update_chat_step(db, session_id=session.session_id, step=1, answer=reply_req.content, turn_index=1)
+        except SQLAlchemyError as exc:
+            if _is_mysql_unsupported_character_error(exc):
+                _stage_end(
+                    trace_id,
+                    session.session_id,
+                    current_user.id,
+                    breakdown,
+                    "save_q1",
+                    save_q1_started,
+                    success=False,
+                    error_code="chat_contains_unsupported_characters",
+                    error_type=type(exc).__name__,
+                    error_message=str(exc),
+                )
+                raise HTTPException(status_code=400, detail="chat_contains_unsupported_characters") from exc
+            raise
         _stage_end(trace_id, session.session_id, current_user.id, breakdown, "save_q1", save_q1_started)
         _log_chat_event(
             logging.INFO,
@@ -988,7 +1028,11 @@ async def reply_chat(
             breakdown=breakdown,
             request_started=request_started,
         )
+    except HTTPException:
+        raise
     except Exception as exc:
+        if _is_mysql_unsupported_character_error(exc):
+            raise HTTPException(status_code=400, detail="chat_contains_unsupported_characters") from exc
         error_code = _map_generation_error(exc)
         _log_chat_event(
             logging.ERROR,

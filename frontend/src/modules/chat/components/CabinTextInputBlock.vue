@@ -42,9 +42,20 @@ const emit = defineEmits<{
   (e: "update:modelValue", value: string): void;
 }>();
 
-function onInput(event: Event) {
-  const detail = (event as Event & { detail?: { value?: string } }).detail;
-  emit("update:modelValue", detail?.value ?? "");
+function extractValue(event: unknown): string {
+  if (typeof event === "string") {
+    return event;
+  }
+  const value =
+    (event as { detail?: { value?: unknown } } | undefined)?.detail?.value ??
+    (event as { target?: { value?: unknown } } | undefined)?.target?.value ??
+    (event as { detail?: unknown } | undefined)?.detail ??
+    "";
+  return typeof value === "string" ? value : String(value ?? "");
+}
+
+function onInput(event: unknown) {
+  emit("update:modelValue", extractValue(event));
 }
 </script>
 
@@ -66,6 +77,8 @@ function onInput(event: Event) {
         :focus="focusInput"
         confirm-type="done"
         @input="onInput"
+        @change="onInput"
+        @blur="onInput"
         @focus="emit('focus')"
       />
       <image

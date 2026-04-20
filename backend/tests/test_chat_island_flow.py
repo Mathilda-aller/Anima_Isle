@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
@@ -315,6 +316,22 @@ def test_chat_reply_logs_new_stage_breakdown(client, db_session, monkeypatch, ca
     assert '"step_name": "empathy_text"' in caplog.text
     assert '"step_name": "emotion_route"' in caplog.text
     assert '"step_name": "three_line_poem"' in caplog.text
+
+
+def test_chat_reply_returns_friendly_error_for_unsupported_characters(client, db_session, monkeypatch):
+    token = _register_and_get_token(db_session)
+    headers = {"Authorization": f"Bearer {token}"}
+    session_id = client.post("/chat/start", headers=headers).json()["session_id"]
+
+    def raise_incorrect_string_value(*args, **kwargs):
+        raise SQLAlchemyError("Incorrect string value: '\\xF0\\x9F\\x98\\x80'")
+
+    monkeypatch.setattr(crud, "update_chat_step", raise_incorrect_string_value)
+
+    response = client.post("/chat/reply", json={"session_id": session_id, "content": "今天😀"}, headers=headers)
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "chat_contains_unsupported_characters"
 
 
 def test_chat_reply_stream_emits_ack_risk_empathy_and_asset(client, db_session, monkeypatch):
