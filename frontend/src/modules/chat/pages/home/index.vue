@@ -6,13 +6,13 @@ import { CHAT_ASSETS } from "@/modules/chat/assets";
 import { useChatStore } from "@/modules/chat/store/chat";
 import { ROUTES } from "@/shared/constants/routes";
 import { navigateToWithFeedback, toLogin } from "@/shared/utils/navigation";
-import { ApiError } from "@/shared/types/http";
 import HomeNavItem from "@/modules/chat/components/HomeNavItem.vue";
 import HomeInputButton from "@/modules/chat/components/HomeInputButton.vue";
 import VoiceInputButton from "@/modules/chat/components/VoiceInputButton.vue";
 import NightIp from "@/shared/components/NightIp.vue";
 import StageViewportShell from "@/shared/components/StageViewportShell.vue";
 import { getStyleOnboardingCompleted } from "@/infrastructure/storage/auth";
+import { getErrorMessage } from "@/shared/utils/error";
 
 const authStore = useAuthStore();
 const chatStore = useChatStore();
@@ -30,11 +30,7 @@ onShow(() => {
 });
 
 function normalizeError(error: unknown): string {
-  if (error instanceof ApiError) {
-    if (typeof error.detail === "string") return error.detail;
-    return JSON.stringify(error.detail);
-  }
-  return "请求失败，请稍后重试";
+  return getErrorMessage(error, "请求失败，请稍后重试");
 }
 
 function openComposer() {

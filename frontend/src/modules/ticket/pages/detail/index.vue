@@ -8,9 +8,9 @@ import { useTicketStore } from "@/modules/ticket/store/ticket";
 import { ROUTES } from "@/shared/constants/routes";
 import { toLogin } from "@/shared/utils/navigation";
 import { SHARED_ASSETS } from "@/shared/assets";
-import { ApiError } from "@/shared/types/http";
 import StageViewportShell from "@/shared/components/StageViewportShell.vue";
 import { logEvent } from "@/infrastructure/http/tracking";
+import { getErrorMessage } from "@/shared/utils/error";
 
 const authStore = useAuthStore();
 const ticketStore = useTicketStore();
@@ -60,11 +60,7 @@ const createdAtLabel = computed(() => {
 });
 
 function normalizeError(error: unknown): string {
-  if (error instanceof ApiError) {
-    if (typeof error.detail === "string") return error.detail;
-    return JSON.stringify(error.detail);
-  }
-  return "船票靠岸时遇到了一点问题，请稍后再试";
+  return getErrorMessage(error, "船票靠岸时遇到了一点问题，请稍后再试");
 }
 
 onLoad(async (query) => {

@@ -10,7 +10,7 @@ import { useSquareStore } from "@/modules/square/store/square";
 import { createAsyncFlowGuard } from "@/modules/chat/utils/asyncFlowGuard";
 import StageViewportShell from "@/shared/components/StageViewportShell.vue";
 import { ROUTES } from "@/shared/constants/routes";
-import { ApiError } from "@/shared/types/http";
+import { getErrorMessage } from "@/shared/utils/error";
 import { toChatHome, toLogin } from "@/shared/utils/navigation";
 
 const authStore = useAuthStore();
@@ -59,11 +59,7 @@ const visibleResponseText = computed(() => displayedResponseText.value);
 const displayError = computed(() => errorMsg.value || chatStore.streamError);
 
 function normalizeError(error: unknown): string {
-  if (error instanceof ApiError) {
-    if (typeof error.detail === "string") return error.detail;
-    return JSON.stringify(error.detail);
-  }
-  return "请求失败，请稍后重试";
+  return getErrorMessage(error, "请求失败，请稍后重试");
 }
 
 function goHome() {

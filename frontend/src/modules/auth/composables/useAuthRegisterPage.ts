@@ -1,8 +1,8 @@
 import { computed, onUnmounted, ref } from "vue";
 import { useAuthStore } from "@/modules/auth/store/auth";
 import { ROUTES } from "@/shared/constants/routes";
-import { ApiError } from "@/shared/types/http";
 import { setStyleOnboardingCompleted } from "@/infrastructure/storage/auth";
+import { getErrorMessage } from "@/shared/utils/error";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PASSWORD_PATTERN = /^(?=.*[A-Za-z])(?=.*\d).{8,64}$/;
@@ -26,24 +26,7 @@ export function useAuthRegisterPage() {
   const canSendCode = computed(() => sendCodeCountdown.value === 0 && EMAIL_PATTERN.test(email.value.trim()));
 
   function normalizeError(error: unknown): string {
-    if (error instanceof ApiError) {
-      if (typeof error.detail === "string") {
-        const errorMap: Record<string, string> = {
-          email_exists: "该邮箱已注册，请直接登录",
-          verification_code_required: "请先获取邮箱验证码",
-          verification_code_invalid: "验证码不正确",
-          verification_code_expired: "验证码已过期，请重新获取",
-          verification_code_used: "验证码已失效，请重新获取",
-          verification_code_send_cooldown: "发送过于频繁，请稍后再试",
-          verification_code_daily_limit: "今日发送次数已达上限",
-          smtp_not_configured: "邮件服务暂不可用，请稍后再试",
-          verification_code_send_failed: "验证码发送失败，请稍后重试",
-        };
-        return errorMap[error.detail] || error.detail;
-      }
-      return JSON.stringify(error.detail);
-    }
-    return "请求失败，请稍后重试";
+    return getErrorMessage(error, "请求失败，请稍后重试");
   }
 
   function startSendCodeCountdown(seconds: number = SEND_CODE_COOLDOWN_SECONDS) {

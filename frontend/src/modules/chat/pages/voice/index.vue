@@ -11,6 +11,7 @@ import CabinVoiceControlBlock from "@/modules/chat/components/CabinVoiceControlB
 import { createAsyncFlowGuard } from "@/modules/chat/utils/asyncFlowGuard";
 import { ROUTES } from "@/shared/constants/routes";
 import { ApiError } from "@/shared/types/http";
+import { getErrorMessage } from "@/shared/utils/error";
 import { toChatHome, toLogin } from "@/shared/utils/navigation";
 
 interface SpeechRecognitionAlternativeLike {
@@ -192,11 +193,7 @@ const controlStatusText = computed(() => {
 });
 
 function normalizeError(error: unknown): string {
-  if (error instanceof ApiError) {
-    if (typeof error.detail === "string") return error.detail;
-    return JSON.stringify(error.detail);
-  }
-  return "录音处理失败，请稍后重试";
+  return getErrorMessage(error, "录音处理失败，请稍后重试");
 }
 
 function isDailyTicketLimitError(error: unknown): boolean {

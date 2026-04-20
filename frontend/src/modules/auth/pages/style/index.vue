@@ -6,8 +6,8 @@ import { useAuthStore } from "@/modules/auth/store/auth";
 import { updateUserStyle } from "@/modules/user/api/style";
 import { ROUTES } from "@/shared/constants/routes";
 import { toLogin } from "@/shared/utils/navigation";
-import { ApiError } from "@/shared/types/http";
 import { setStoredUser, setStyleOnboardingCompleted } from "@/infrastructure/storage/auth";
+import { getErrorMessage } from "@/shared/utils/error";
 
 const authStore = useAuthStore();
 const selectedStyle = ref<"Warm" | "Dark" | "">("");
@@ -26,11 +26,7 @@ onShow(() => {
 });
 
 function normalizeError(error: unknown): string {
-  if (error instanceof ApiError) {
-    if (typeof error.detail === "string") return error.detail;
-    return JSON.stringify(error.detail);
-  }
-  return "保存失败，请稍后重试";
+  return getErrorMessage(error, "保存失败，请稍后重试");
 }
 
 async function submitSelection() {

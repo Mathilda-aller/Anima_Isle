@@ -1,5 +1,6 @@
 # app/utils/wechat.py
 import os
+import logging
 import httpx
 from fastapi import HTTPException, status
 from dotenv import load_dotenv
@@ -8,6 +9,7 @@ load_dotenv()
 
 WECHAT_APP_ID = os.getenv("WECHAT_APP_ID")
 WECHAT_APP_SECRET = os.getenv("WECHAT_APP_SECRET")
+logger = logging.getLogger(__name__)
 
 class WeChatAuthError(Exception):
     """自定义微信认证异常"""
@@ -21,7 +23,7 @@ async def code_to_session(code: str) -> dict:
     if not WECHAT_APP_ID or not WECHAT_APP_SECRET:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
-            detail="Server misconfiguration: Missing WeChat credentials."
+            detail="wechat_login_unavailable"
         )
 
     url = "https://api.weixin.qq.com/sns/jscode2session"
@@ -43,7 +45,7 @@ async def code_to_session(code: str) -> dict:
             # 微信接口只要返回了 errcode 且不为 0，就是业务错误
             if "errcode" in data and data["errcode"] != 0:
                 error_msg = data.get("errmsg", "Unknown WeChat error")
-                print(f" WeChat API Error: {data}") # 生产环境应用 logging.error
+                logger.error("WeChat API Error: %s", data)
                 raise WeChatAuthError(f"WeChat login failed: {error_msg}")
             
             return {
@@ -54,14 +56,15 @@ async def code_to_session(code: str) -> dict:
 
     except httpx.RequestError as e:
         # 网络连通性问题
-        print(f" WeChat Network Error: {str(e)}")
+        logger.error("WeChat Network Error: %s", str(e))
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Failed to connect to WeChat server"
+            detail="wechat_server_unreachable"
         )
     except WeChatAuthError as e:
         # 业务逻辑错误 (如 code 无效)
+        logger.warning("WeChat login failed: %s", str(e))
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
+            detail="wechat_code_invalid"
         )

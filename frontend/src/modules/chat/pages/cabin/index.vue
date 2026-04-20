@@ -10,6 +10,7 @@ import { createAsyncFlowGuard } from "@/modules/chat/utils/asyncFlowGuard";
 import { isRequestAbortedError } from "@/infrastructure/http/request";
 import { ROUTES } from "@/shared/constants/routes";
 import { ApiError } from "@/shared/types/http";
+import { getErrorMessage } from "@/shared/utils/error";
 import { toChatHome, toLogin } from "@/shared/utils/navigation";
 
 const authStore = useAuthStore();
@@ -73,11 +74,7 @@ const activeModelValue = computed(() => (cabinFlow.value === "submitted-preview"
 const activePlaceholder = computed(() => (cabinFlow.value === "submitted-preview" ? "" : placeholderText.value));
 
 function normalizeError(error: unknown): string {
-  if (error instanceof ApiError) {
-    if (typeof error.detail === "string") return error.detail;
-    return JSON.stringify(error.detail);
-  }
-  return "请求失败，请稍后重试";
+  return getErrorMessage(error, "请求失败，请稍后重试");
 }
 
 function isDailyTicketLimitError(error: unknown): boolean {

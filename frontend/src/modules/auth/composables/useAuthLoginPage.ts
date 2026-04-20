@@ -1,8 +1,8 @@
 import { computed, ref } from "vue";
 import { useAuthStore } from "@/modules/auth/store/auth";
 import { ROUTES } from "@/shared/constants/routes";
-import { ApiError } from "@/shared/types/http";
 import { getStyleOnboardingCompleted } from "@/infrastructure/storage/auth";
+import { getErrorMessage } from "@/shared/utils/error";
 
 export function useAuthLoginPage() {
   const authStore = useAuthStore();
@@ -16,11 +16,7 @@ export function useAuthLoginPage() {
   const switchLabel = computed(() => "新用户注册");
 
   function normalizeError(error: unknown): string {
-    if (error instanceof ApiError) {
-      if (typeof error.detail === "string") return error.detail;
-      return JSON.stringify(error.detail);
-    }
-    return "请求失败，请稍后重试";
+    return getErrorMessage(error, "请求失败，请稍后重试");
   }
 
   async function submitAuth() {
