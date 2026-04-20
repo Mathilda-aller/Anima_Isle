@@ -207,6 +207,35 @@ def test_register_rejects_used_verification_code(db_session):
     assert_http_error(exc_info, 400, "verification_code_used")
 
 
+def test_register_accepts_still_valid_older_verification_code(db_session):
+    crud.create_email_verification_code(
+        db=db_session,
+        email="older@example.com",
+        code_hash=security.hash_email_verification_code("123456"),
+        expires_at=datetime.now() + timedelta(minutes=10),
+        send_count=1,
+    )
+    crud.create_email_verification_code(
+        db=db_session,
+        email="older@example.com",
+        code_hash=security.hash_email_verification_code("654321"),
+        expires_at=datetime.now() + timedelta(minutes=10),
+        send_count=2,
+    )
+
+    register_resp = auth.register(
+        schemas.EmailRegisterRequest(
+            email="older@example.com",
+            password="abc12345",
+            nickname="Older",
+            verification_code="123456",
+        ),
+        db_session,
+    )
+
+    assert register_resp.user_info.nickname == "Older"
+
+
 @pytest.mark.anyio
 async def test_forgot_password_unified_response(db_session, monkeypatch):
     user = crud.create_email_user(db_session, "user2@example.com", "abc12345")

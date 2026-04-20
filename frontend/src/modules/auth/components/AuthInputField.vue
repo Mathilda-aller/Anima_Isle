@@ -11,9 +11,26 @@ const emit = defineEmits<{
   (e: "update:modelValue", value: string): void;
 }>();
 
-function onInput(event: Event) {
-  const value = ((event as any)?.detail?.value || "") as string;
+function extractValue(event: unknown): string {
+  if (typeof event === "string") {
+    return event;
+  }
+  const value =
+    (event as { detail?: { value?: unknown } } | undefined)?.detail?.value ??
+    (event as { target?: { value?: unknown } } | undefined)?.target?.value ??
+    (event as { detail?: unknown } | undefined)?.detail ??
+    "";
+  return typeof value === "string" ? value : String(value ?? "");
+}
+
+function onInput(event: unknown) {
+  const value = extractValue(event);
   emit("update:modelValue", value);
+}
+
+function onBlur(event: unknown) {
+  isFocused.value = false;
+  emit("update:modelValue", extractValue(event));
 }
 
 const isFocused = ref(false);
@@ -28,8 +45,9 @@ const isFocused = ref(false);
       :placeholder="placeholder"
       placeholder-class="field-placeholder"
       @input="onInput"
+      @change="onInput"
       @focus="isFocused = true"
-      @blur="isFocused = false"
+      @blur="onBlur"
     />
   </view>
 </template>

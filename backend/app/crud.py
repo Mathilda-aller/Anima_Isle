@@ -176,6 +176,22 @@ def get_latest_email_verification_code(db: Session, email: str) -> Optional[mode
     )
 
 
+def get_latest_email_verification_code_by_hash(
+    db: Session,
+    email: str,
+    code_hash: str,
+) -> Optional[models.EmailVerificationCode]:
+    return (
+        db.query(models.EmailVerificationCode)
+        .filter(
+            models.EmailVerificationCode.email == email,
+            models.EmailVerificationCode.code_hash == code_hash,
+        )
+        .order_by(desc(models.EmailVerificationCode.created_at), desc(models.EmailVerificationCode.id))
+        .first()
+    )
+
+
 def count_email_verification_codes_since(db: Session, email: str, since: datetime) -> int:
     return (
         db.query(func.count(models.EmailVerificationCode.id))

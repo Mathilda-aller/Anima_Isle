@@ -41,34 +41,46 @@ def register(
     register_req: schemas.EmailRegisterRequest,
     db: Session = Depends(deps.get_db),
 ):
+    email = str(register_req.email)
     if not security.validate_password_strength(register_req.password):
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Password must be 8-64 chars and contain letters and numbers.",
         )
 
-    exists = crud.get_user_by_email(db, register_req.email)
+    exists = crud.get_user_by_email(db, email)
     if exists:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="email_exists")
 
-    verification = crud.get_latest_email_verification_code(db, register_req.email)
-    if not verification:
+    latest_verification = crud.get_latest_email_verification_code(db, email)
+    if not latest_verification:
+        logger.warning("Register rejected: verification code missing for email=%s", email)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="verification_code_required")
+    code_hash = security.hash_email_verification_code(register_req.verification_code)
+    verification = crud.get_latest_email_verification_code_by_hash(db, email, code_hash)
+    if not verification:
+        logger.warning(
+            "Register rejected: verification code invalid for email=%s latest_created_at=%s",
+            email,
+            latest_verification.created_at.isoformat(),
+        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="verification_code_invalid")
     if verification.used_at is not None:
+        logger.warning("Register rejected: verification code already used for email=%s", email)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="verification_code_used")
     if verification.expires_at < datetime.now():
+        logger.warning("Register rejected: verification code expired for email=%s", email)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="verification_code_expired")
-    if verification.code_hash != security.hash_email_verification_code(register_req.verification_code):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="verification_code_invalid")
 
     user = crud.create_email_user(
         db,
-        email=register_req.email,
+        email=email,
         password=register_req.password,
         nickname=register_req.nickname,
     )
     crud.mark_email_verification_code_used(db, verification)
     user = crud.update_last_login_at(db, user)
+    logger.info("Register succeeded for email=%s user_id=%s", email, user.id)
     return _build_auth_response(user)
 
 
@@ -113,6 +125,7 @@ async def send_register_verification_code(
         requested_ip=client_ip,
         user_agent=request.headers.get("user-agent"),
     )
+    logger.info("Register verification code issued for email=%s ip=%s", email, client_ip)
     return schemas.MessageResponse(message="verification_code_sent")
 
 
