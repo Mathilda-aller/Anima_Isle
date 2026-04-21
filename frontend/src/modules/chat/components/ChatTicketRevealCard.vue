@@ -5,6 +5,7 @@ const props = withDefaults(
   defineProps<{
     promptText?: string;
     imageUrl?: string;
+    prefetchedImageUrl?: string;
     refreshIcon: string;
     acceptLabel?: string;
     acceptDisabled?: boolean;
@@ -14,6 +15,7 @@ const props = withDefaults(
   {
     promptText: "这张卡片，是否触碰到了你的心声？",
     imageUrl: "",
+    prefetchedImageUrl: "",
     acceptLabel: "收下",
     acceptDisabled: false,
     acceptLoading: false,
@@ -29,9 +31,13 @@ const emit = defineEmits<{
 const imageState = ref<"idle" | "loading" | "ready" | "error">("idle");
 
 watch(
-  () => props.imageUrl,
-  (next) => {
-    imageState.value = next ? "loading" : "idle";
+  () => [props.imageUrl, props.prefetchedImageUrl] as const,
+  ([nextImageUrl, prefetchedImageUrl]) => {
+    if (!nextImageUrl) {
+      imageState.value = "idle";
+      return;
+    }
+    imageState.value = nextImageUrl === prefetchedImageUrl ? "ready" : "loading";
   },
   { immediate: true },
 );

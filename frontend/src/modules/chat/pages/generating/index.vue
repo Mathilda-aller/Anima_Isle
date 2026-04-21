@@ -8,6 +8,13 @@ import ChatCabinScene from "@/modules/chat/components/ChatCabinScene.vue";
 import ChatTicketRevealCard from "@/modules/chat/components/ChatTicketRevealCard.vue";
 import { useSquareStore } from "@/modules/square/store/square";
 import { createAsyncFlowGuard } from "@/modules/chat/utils/asyncFlowGuard";
+import {
+  IMAGE_PRELOAD_ERROR_MESSAGE,
+  IMAGE_PRELOAD_TIMEOUT_MS,
+  TRANSITION_STAGE_MIN_DELAY_MS,
+  getComfortStageDelayMs,
+  runRevealStageSequence,
+} from "@/modules/chat/utils/generatingFlow";
 import StageViewportShell from "@/shared/components/StageViewportShell.vue";
 import { ROUTES } from "@/shared/constants/routes";
 import { getErrorMessage } from "@/shared/utils/error";
@@ -19,11 +26,12 @@ const squareStore = useSquareStore();
 const errorMsg = ref("");
 const confirmLoading = ref(false);
 const generatingStarted = ref(false);
-const finishedStage = ref<"reply" | "transition" | "reveal">("reply");
+const stageState = ref<"reply" | "transition" | "reveal">("reply");
 const previewStage = ref<"" | "thinking" | "reply" | "transition" | "reveal">("");
 const previewTicketUid = ref("");
 const displayedResponseText = ref("");
 const revealQueue = ref("");
+const prefetchedRevealImageUrl = ref("");
 const transitionTitleText = "海潮为你梳理着思绪……";
 const transitionBodyText = "现在，它们正在被拓印成画，轻吟成诗……";
 const generationFlowGuard = createAsyncFlowGuard();
@@ -35,12 +43,12 @@ const showReplyStage = computed(
     previewStage.value === "reply" ||
     chatStore.generationState === "reply_streaming" ||
     chatStore.generationState === "asset_loading" ||
-    (isFinished.value && finishedStage.value === "reply"),
+    (isFinished.value && stageState.value === "reply"),
 );
 const showTransitionStage = computed(
-  () => previewStage.value === "transition" || (isFinished.value && finishedStage.value === "transition"),
+  () => previewStage.value === "transition" || (isFinished.value && stageState.value === "transition"),
 );
-const showRevealStage = computed(() => previewStage.value === "reveal" || (isFinished.value && finishedStage.value === "reveal"));
+const showRevealStage = computed(() => previewStage.value === "reveal" || (isFinished.value && stageState.value === "reveal"));
 const ticketImageUrl = computed(() => chatStore.ticketDraft?.image_url ?? "");
 const rerollCandidates = computed(() =>
   (chatStore.ticketDraft?.candidate_images ?? []).filter((item) => item.image_url),
@@ -66,6 +74,11 @@ function goHome() {
   generationFlowGuard.invalidate();
   chatStore.resetSession();
   toChatHome();
+}
+
+function resetStageState() {
+  stageState.value = "reply";
+  prefetchedRevealImageUrl.value = "";
 }
 
 function clearRevealTimer() {
@@ -120,16 +133,6 @@ function resetRevealText() {
   revealQueue.value = "";
 }
 
-function scheduleRevealStage(token: number) {
-  const ticketImageUrl = chatStore.ticketDraft?.image_url ?? "";
-  void Promise.all([waitForDelay(1400), preloadTicketImage(ticketImageUrl)]).then(() => {
-    if (!generationFlowGuard.isCurrent(token)) {
-      return;
-    }
-    finishedStage.value = "reveal";
-  });
-}
-
 function waitForDelay(delay: number) {
   return new Promise<void>((resolve) => {
     setTimeout(resolve, delay);
@@ -147,7 +150,7 @@ function preloadTicketImage(imageUrl: string) {
       if (settled) return;
       settled = true;
       resolve(false);
-    }, 15000);
+    }, IMAGE_PRELOAD_TIMEOUT_MS);
 
     const finish = (result: boolean) => {
       if (settled) return;
@@ -172,11 +175,43 @@ function preloadTicketImage(imageUrl: string) {
   });
 }
 
+function startRevealFlow(token: number) {
+  const currentImageUrl = chatStore.ticketDraft?.image_url ?? "";
+  const imageReadyPromise = preloadTicketImage(currentImageUrl);
+
+  errorMsg.value = "";
+  prefetchedRevealImageUrl.value = "";
+
+  void runRevealStageSequence({
+    comfortDelayMs: getComfortStageDelayMs(responseText.value),
+    transitionDelayMs: TRANSITION_STAGE_MIN_DELAY_MS,
+    imageReadyPromise,
+    waitForDelay,
+    isCurrent: () => generationFlowGuard.isCurrent(token),
+    onTransitionStart: () => {
+      stageState.value = "transition";
+      prefetchedRevealImageUrl.value = "";
+      errorMsg.value = "";
+    },
+    onRevealReady: () => {
+      stageState.value = "reveal";
+      prefetchedRevealImageUrl.value = currentImageUrl;
+      errorMsg.value = "";
+    },
+    onImageFailed: () => {
+      stageState.value = "transition";
+      prefetchedRevealImageUrl.value = "";
+      errorMsg.value = IMAGE_PRELOAD_ERROR_MESSAGE;
+    },
+  });
+}
+
 async function beginGeneratingIfNeeded() {
   if (generatingStarted.value || !chatStore.pendingFinalAnswer) return;
 
   const flowToken = generationFlowGuard.begin();
   generatingStarted.value = true;
+  resetStageState();
   errorMsg.value = "";
 
   try {
@@ -191,8 +226,7 @@ async function beginGeneratingIfNeeded() {
       return;
     }
     if (chatStore.generationState === "finished") {
-      finishedStage.value = "transition";
-      scheduleRevealStage(flowToken);
+      startRevealFlow(flowToken);
       return;
     }
   } catch (error) {
@@ -209,15 +243,15 @@ async function syncFlow() {
 
   if (previewStage.value === "thinking") return;
   if (previewStage.value === "reply") {
-    finishedStage.value = "reply";
+    stageState.value = "reply";
     return;
   }
   if (previewStage.value === "transition") {
-    finishedStage.value = "transition";
+    stageState.value = "transition";
     return;
   }
   if (previewStage.value === "reveal") {
-    finishedStage.value = "reveal";
+    stageState.value = "reveal";
     return;
   }
 
@@ -239,9 +273,10 @@ async function syncFlow() {
   await beginGeneratingIfNeeded();
 
   if (isFinished.value) {
-    const flowToken = generationFlowGuard.begin();
-    finishedStage.value = "transition";
-    scheduleRevealStage(flowToken);
+    if (!generatingStarted.value) {
+      stageState.value = "reveal";
+      prefetchedRevealImageUrl.value = ticketImageUrl.value;
+    }
   }
 }
 
@@ -334,7 +369,7 @@ onBeforeUnmount(() => {
   generationFlowGuard.invalidate();
   chatStore.cancelActiveChatWork(["final_stream"]);
   generatingStarted.value = false;
-  finishedStage.value = "reply";
+  resetStageState();
   clearRevealTimer();
 });
 </script>
@@ -347,6 +382,7 @@ onBeforeUnmount(() => {
           <view class="chat-generating__artboard">
             <ChatTicketRevealCard
               :image-url="ticketImageUrl"
+              :prefetched-image-url="prefetchedRevealImageUrl"
               :refresh-icon="CHAT_ASSETS.icons.ticketRerollRefresh"
               :accept-disabled="confirmLoading"
               :accept-loading="confirmLoading"
