@@ -104,8 +104,8 @@ def test_chat_reply_returns_finished_with_dynamic_poem(client, db_session, monke
     async def _embedding(*args, **kwargs):
         return [0.1] * 1024
 
-    async def _poem(*args, **kwargs):
-        return "第一行\n第二行\n第三行"
+    async def _poem(_user_input, image_description, **kwargs):
+        return f"诗句-{image_description}"
 
     def _search(*args, **kwargs):
         return [_candidate("img-1", 0), _candidate("img-2", 1), _candidate("img-3", 2)]
@@ -130,10 +130,15 @@ def test_chat_reply_returns_finished_with_dynamic_poem(client, db_session, monke
     body = step2.json()
     assert body["state"] == "finished"
     assert body["reply_text"] == "我在听你说。"
-    assert body["ticket_data"]["poem_content"] == "第一行\n第二行\n第三行"
+    assert body["ticket_data"]["poem_content"] == "诗句-image-description-0"
     assert body["ticket_data"]["island_category"] == "RAIN"
     assert len(body["ticket_data"]["recommended_tags"]) == 5
     assert len(body["ticket_data"]["candidate_images"]) == 3
+    assert [item["poem_content"] for item in body["ticket_data"]["candidate_images"]] == [
+        "诗句-image-description-0",
+        "诗句-image-description-1",
+        "诗句-image-description-2",
+    ]
 
 
 def test_chat_reply_risk_blocked_uses_risk_engine(client, db_session, monkeypatch):
@@ -240,8 +245,8 @@ def test_internal_tester_can_bypass_daily_ticket_limit(client, db_session, monke
     async def _embedding(*args, **kwargs):
         return [0.1] * 1024
 
-    async def _poem(*args, **kwargs):
-        return "第一行\n第二行\n第三行"
+    async def _poem(_user_input, image_description, **kwargs):
+        return f"诗句-{image_description}"
 
     def _search(*args, **kwargs):
         return [_candidate("img-1", 0), _candidate("img-2", 1), _candidate("img-3", 2)]
@@ -291,8 +296,8 @@ def test_chat_reply_logs_new_stage_breakdown(client, db_session, monkeypatch, ca
     async def _embedding(*args, **kwargs):
         return [0.1] * 1024
 
-    async def _poem(*args, **kwargs):
-        return "第一行\n第二行\n第三行"
+    async def _poem(_user_input, image_description, **kwargs):
+        return f"诗句-{image_description}"
 
     def _search(*args, **kwargs):
         return [_candidate("img-1", 0), _candidate("img-2", 1), _candidate("img-3", 2)]
@@ -348,8 +353,8 @@ def test_chat_reply_stream_emits_ack_risk_empathy_and_asset(client, db_session, 
     async def _embedding(*args, **kwargs):
         return [0.1] * 1024
 
-    async def _poem(*args, **kwargs):
-        return "第一行\n第二行\n第三行"
+    async def _poem(_user_input, image_description, **kwargs):
+        return f"诗句-{image_description}"
 
     def _search(*args, **kwargs):
         return [_candidate("img-1", 0), _candidate("img-2", 1), _candidate("img-3", 2)]
@@ -381,6 +386,7 @@ def test_chat_reply_stream_emits_ack_risk_empathy_and_asset(client, db_session, 
     assert "event: empathy_done" in body
     assert "event: asset_ready" in body
     assert "event: done" in body
+    assert "诗句-image-description-2" in body
 
 
 def test_chat_reply_stream_can_finish_after_frontend_timeout_budget(client, db_session, monkeypatch):
@@ -520,6 +526,44 @@ def test_chat_reply_generation_failure_keeps_session_retryable(client, db_sessio
     assert retried.json()["state"] == "finished"
     assert crud.get_chat_session(db_session, session_id).current_step == 3
     assert db_session.query(models.Ticket).count() == 1
+
+
+def test_confirm_ticket_updates_poem_with_selected_image(client, db_session):
+    user = crud.create_email_user(
+        db_session,
+        email="confirm_ticket_poem@example.com",
+        password="abc12345",
+        nickname="ConfirmPoem",
+    )
+    ticket = crud.create_ticket(
+        db_session,
+        {
+            "image_url": "https://img/original.jpg",
+            "poem_content": "首图诗句",
+            "island_category": "RAIN",
+            "selected_image_id": "img-1",
+        },
+        user.id,
+    )
+    token = security.create_access_token(data={"sub": str(user.id)})
+    headers = {"Authorization": f"Bearer {token}"}
+
+    response = client.post(
+        "/chat/confirm",
+        json={
+            "ticket_uid": ticket.ticket_uid,
+            "final_image_url": "https://img/reroll.jpg",
+            "final_poem_content": "重选后的诗句",
+            "reroll_count": 1,
+        },
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+    updated = crud.get_ticket_by_uid(db_session, ticket.ticket_uid)
+    assert updated.image_url == "https://img/reroll.jpg"
+    assert updated.poem_content == "重选后的诗句"
+    assert updated.reroll_count == 1
 
 
 def test_daily_ticket_count_only_includes_today(db_session):

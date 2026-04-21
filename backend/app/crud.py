@@ -333,6 +333,7 @@ def update_ticket_selection(
     db: Session,
     ticket_uid: str,
     image_url: str,
+    poem_content: Optional[str] = None,
     style: Optional[str] = None,
     reroll_count: int = 0,
     selected_image_id: Optional[str] = None,
@@ -344,6 +345,8 @@ def update_ticket_selection(
     ticket = get_ticket_by_uid(db, ticket_uid)
     if ticket:
         ticket.image_url = image_url
+        if poem_content is not None:
+            ticket.poem_content = poem_content
         if style:
             ticket.image_style = style
         ticket.selected_image_id = selected_image_id

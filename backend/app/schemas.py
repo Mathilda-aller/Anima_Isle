@@ -152,6 +152,7 @@ class TicketDTO(BaseModel):
 class TicketConfirmRequest(BaseModel):
     ticket_uid: str        # 必须传 Ticket 的业务ID，确保更新对那张票
     final_image_url: str   # 用户最终看到的图 (可能是重随后的 Style B)
+    final_poem_content: str
     final_style: Optional[str] = None  # 兼容字段，已弃用
     
     # 记录重新生成次数，最多两次

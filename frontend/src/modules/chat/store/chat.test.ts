@@ -18,7 +18,7 @@ vi.mock("@/infrastructure/http/tracking", () => ({
   logEvent: vi.fn().mockResolvedValue(undefined),
 }));
 
-import { replyChatCancelable, replyChatStreamCancelable } from "@/modules/chat/api/chat";
+import { confirmTicket, replyChatCancelable, replyChatStreamCancelable } from "@/modules/chat/api/chat";
 import { useChatStore } from "@/modules/chat/store/chat";
 
 function deferred<T>() {
@@ -102,5 +102,61 @@ describe("chat store request isolation", () => {
     expect(cancel).toHaveBeenCalledTimes(1);
     expect(store.ticketDraft).toBeNull();
     expect(store.step).toBe(0);
+  });
+
+  it("switches poem content when choosing another candidate", () => {
+    const store = useChatStore();
+    store.ticketDraft = {
+      id: 1,
+      ticket_uid: "ticket-1",
+      image_url: "https://img/old.jpg",
+      poem_content: "旧诗句",
+      island_category: "RAIN",
+      is_public: false,
+      created_at: "2026-04-21T00:00:00",
+      recommended_tags: ["#a", "#b", "#c", "#d", "#e"],
+      candidate_images: [
+        { image_url: "https://img/old.jpg", poem_content: "旧诗句" },
+        { image_url: "https://img/new.jpg", poem_content: "新诗句" },
+      ],
+    };
+
+    store.chooseCandidate("https://img/new.jpg");
+
+    expect(store.ticketDraft?.image_url).toBe("https://img/new.jpg");
+    expect(store.ticketDraft?.poem_content).toBe("新诗句");
+    expect(store.rerollCount).toBe(1);
+  });
+
+  it("submits the current poem when confirming a ticket", async () => {
+    const store = useChatStore();
+    vi.mocked(confirmTicket).mockResolvedValue({
+      ticket_uid: "ticket-1",
+      final_image_url: "https://img/new.jpg",
+      reroll_count: 1,
+    } as any);
+
+    store.sessionId = "session-c";
+    store.rerollCount = 1;
+    store.ticketDraft = {
+      id: 1,
+      ticket_uid: "ticket-1",
+      image_url: "https://img/new.jpg",
+      poem_content: "当前诗句",
+      island_category: "RAIN",
+      is_public: false,
+      created_at: "2026-04-21T00:00:00",
+      recommended_tags: ["#a", "#b", "#c", "#d", "#e"],
+      candidate_images: [{ image_url: "https://img/new.jpg", poem_content: "当前诗句" }],
+    };
+
+    await store.confirmTicketSelection();
+
+    expect(confirmTicket).toHaveBeenCalledWith({
+      ticket_uid: "ticket-1",
+      final_image_url: "https://img/new.jpg",
+      final_poem_content: "当前诗句",
+      reroll_count: 1,
+    });
   });
 });

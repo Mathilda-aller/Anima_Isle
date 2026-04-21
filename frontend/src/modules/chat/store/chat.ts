@@ -385,6 +385,7 @@ export const useChatStore = defineStore("chat", {
       await confirmTicket({
         ticket_uid: this.ticketDraft.ticket_uid,
         final_image_url: this.ticketDraft.image_url,
+        final_poem_content: this.ticketDraft.poem_content,
         reroll_count: this.rerollCount,
       });
 

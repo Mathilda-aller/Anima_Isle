@@ -75,6 +75,7 @@ export interface ChatStreamEvent<T = Record<string, unknown>> {
 export interface TicketConfirmRequest {
   ticket_uid: string;
   final_image_url: string;
+  final_poem_content: string;
   final_style?: string;
   reroll_count: number;
 }

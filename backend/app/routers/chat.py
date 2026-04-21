@@ -470,14 +470,14 @@ async def _generate_ticket_bundle(
             search_started,
             candidate_count=len(candidate_images),
         )
-        primary = candidate_images[0]
-
         poem_started = _stage_start(trace_id, session.session_id, current_user.id, "three_line_poem")
-        generated_poem = await ai_engine.generate_three_line_poem(
-            full_context,
-            primary.get("image_description") or "海面的雾与微光",
+        candidate_images = await _hydrate_candidate_poems(
+            full_context=full_context,
+            candidate_images=candidate_images,
             trace_id=trace_id,
         )
+        primary = candidate_images[0]
+        generated_poem = primary["poem_content"]
         _stage_end(
             trace_id,
             session.session_id,
@@ -583,6 +583,25 @@ async def _save_q2_and_build_context(
     _stage_end(trace_id, session.session_id, user_id, breakdown, "save_q2", save_q2_started)
     full_context = f"{session.turn_1_answer}。{session.turn_2_answer}"
     return session, full_context
+
+
+async def _hydrate_candidate_poems(
+    *,
+    full_context: str,
+    candidate_images: List[Dict[str, Any]],
+    trace_id: str,
+) -> List[Dict[str, Any]]:
+    poems = await asyncio.gather(
+        *[
+            ai_engine.generate_three_line_poem(
+                full_context,
+                candidate.get("image_description") or "海面的雾与微光",
+                trace_id=trace_id,
+            )
+            for candidate in candidate_images
+        ]
+    )
+    return [{**candidate, "poem_content": poem} for candidate, poem in zip(candidate_images, poems)]
 
 
 async def _build_sync_final_response(
@@ -842,15 +861,15 @@ async def _stream_final_reply_events(
             search_started,
             candidate_count=len(candidate_images),
         )
-        primary = candidate_images[0]
-
         await _raise_if_client_disconnected(is_disconnected)
         poem_started = _stage_start(trace_id, session.session_id, current_user.id, "three_line_poem")
-        generated_poem = await ai_engine.generate_three_line_poem(
-            full_context,
-            primary.get("image_description") or "海面的雾与微光",
+        candidate_images = await _hydrate_candidate_poems(
+            full_context=full_context,
+            candidate_images=candidate_images,
             trace_id=trace_id,
         )
+        primary = candidate_images[0]
+        generated_poem = primary["poem_content"]
         _stage_end(trace_id, session.session_id, current_user.id, breakdown, "three_line_poem", poem_started)
         recommended_tags = await _await_recommended_tags(
             tags_task=tags_task,
@@ -1121,6 +1140,7 @@ def confirm_ticket(
             db,
             ticket_uid=ticket.ticket_uid,
             image_url=confirm_req.final_image_url,
+            poem_content=confirm_req.final_poem_content,
             style=confirm_req.final_style,
             reroll_count=confirm_req.reroll_count,
             selected_image_id=confirm_req.final_image_url,
