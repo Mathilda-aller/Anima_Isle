@@ -1,4 +1,4 @@
-import { computed, onUnmounted, ref } from "vue";
+import { computed, nextTick, onUnmounted, ref } from "vue";
 import { useAuthStore } from "@/modules/auth/store/auth";
 import { ROUTES } from "@/shared/constants/routes";
 import { setStyleOnboardingCompleted } from "@/infrastructure/storage/auth";
@@ -95,8 +95,20 @@ export function useAuthRegisterPage() {
     return true;
   }
 
+  async function settleActiveInputBeforeSubmit() {
+    if (typeof document !== "undefined") {
+      const activeElement = document.activeElement;
+      if (activeElement instanceof HTMLElement) {
+        activeElement.blur();
+      }
+    }
+    await nextTick();
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+
   async function submitRegistration() {
     errorMsg.value = "";
+    await settleActiveInputBeforeSubmit();
     if (!validateForm()) return;
 
     try {
