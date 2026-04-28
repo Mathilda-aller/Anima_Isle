@@ -69,6 +69,7 @@ function handleImageError() {
       <view class="chat-ticket-reveal-card__card">
         <image
           v-if="imageUrl"
+          :key="imageUrl"
           class="chat-ticket-reveal-card__image"
           :src="imageUrl"
           mode="aspectFill"
