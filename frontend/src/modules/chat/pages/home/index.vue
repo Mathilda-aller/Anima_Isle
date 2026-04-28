@@ -219,9 +219,8 @@ function goSquare() {
 }
 
 .nav-right {
-  left: 82.08%;
-  top: 61.86%;
-  transform: translateX(-50%);
+  right: 2.71%;
+  top: 60.39%;
 }
 
 .nav-orbit::before {
@@ -238,8 +237,7 @@ function goSquare() {
   transform: translateY(2rpx) scale(0.97);
 }
 
-.nav-center:active,
-.nav-right:active {
+.nav-center:active {
   transform: translateX(-50%) translateY(2rpx) scale(0.97);
 }
 
