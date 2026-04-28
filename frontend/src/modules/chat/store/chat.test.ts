@@ -128,6 +128,61 @@ describe("chat store request isolation", () => {
     expect(store.rerollCount).toBe(1);
   });
 
+  it("cycles candidate selection across multiple rerolls", () => {
+    const store = useChatStore();
+    store.ticketDraft = {
+      id: 1,
+      ticket_uid: "ticket-2",
+      image_url: "https://img/a.jpg",
+      poem_content: "诗句-A",
+      island_category: "RAIN",
+      is_public: false,
+      created_at: "2026-04-21T00:00:00",
+      recommended_tags: ["#a", "#b", "#c", "#d", "#e"],
+      candidate_images: [
+        { image_url: "https://img/a.jpg", poem_content: "诗句-A" },
+        { image_url: "https://img/b.jpg", poem_content: "诗句-B" },
+        { image_url: "https://img/c.jpg", poem_content: "诗句-C" },
+      ],
+    };
+
+    store.chooseCandidate("https://img/b.jpg");
+    expect(store.ticketDraft?.image_url).toBe("https://img/b.jpg");
+    expect(store.ticketDraft?.poem_content).toBe("诗句-B");
+
+    store.chooseCandidate("https://img/c.jpg");
+    expect(store.ticketDraft?.image_url).toBe("https://img/c.jpg");
+    expect(store.ticketDraft?.poem_content).toBe("诗句-C");
+
+    store.chooseCandidate("https://img/a.jpg");
+    expect(store.ticketDraft?.image_url).toBe("https://img/a.jpg");
+    expect(store.ticketDraft?.poem_content).toBe("诗句-A");
+    expect(store.rerollCount).toBe(3);
+  });
+
+  it("keeps the first matching poem when duplicate image urls are provided", () => {
+    const store = useChatStore();
+    store.ticketDraft = {
+      id: 1,
+      ticket_uid: "ticket-3",
+      image_url: "https://img/a.jpg",
+      poem_content: "诗句-A",
+      island_category: "RAIN",
+      is_public: false,
+      created_at: "2026-04-21T00:00:00",
+      recommended_tags: ["#a", "#b", "#c", "#d", "#e"],
+      candidate_images: [
+        { image_url: "https://img/a.jpg", poem_content: "诗句-A" },
+        { image_url: "https://img/a.jpg", poem_content: "诗句-A-重复" },
+      ],
+    };
+
+    store.chooseCandidate("https://img/a.jpg");
+
+    expect(store.ticketDraft?.image_url).toBe("https://img/a.jpg");
+    expect(store.ticketDraft?.poem_content).toBe("诗句-A");
+  });
+
   it("submits the current poem when confirming a ticket", async () => {
     const store = useChatStore();
     vi.mocked(confirmTicket).mockResolvedValue({

@@ -15,6 +15,7 @@ import {
   getComfortStageDelayMs,
   runRevealStageSequence,
 } from "@/modules/chat/utils/generatingFlow";
+import { canRerollCandidates, getNextRerollImageUrl, getRerollCandidates } from "@/modules/chat/utils/ticketReveal";
 import StageViewportShell from "@/shared/components/StageViewportShell.vue";
 import { ROUTES } from "@/shared/constants/routes";
 import { getErrorMessage } from "@/shared/utils/error";
@@ -50,10 +51,8 @@ const showTransitionStage = computed(
 );
 const showRevealStage = computed(() => previewStage.value === "reveal" || (isFinished.value && stageState.value === "reveal"));
 const ticketImageUrl = computed(() => chatStore.ticketDraft?.image_url ?? "");
-const rerollCandidates = computed(() =>
-  (chatStore.ticketDraft?.candidate_images ?? []).filter((item) => item.image_url),
-);
-const canReroll = computed(() => rerollCandidates.value.length > 1 && !confirmLoading.value);
+const rerollCandidates = computed(() => getRerollCandidates(chatStore.ticketDraft?.candidate_images ?? []));
+const canReroll = computed(() => canRerollCandidates(chatStore.ticketDraft?.candidate_images ?? [], confirmLoading.value));
 const thinkingExcerptText = computed(() => {
   const segments = [chatStore.answer1.trim(), (chatStore.pendingFinalAnswer || chatStore.answer2).trim()].filter(Boolean);
   return segments.join("\n");
@@ -283,11 +282,9 @@ async function syncFlow() {
 function rerollCard() {
   if (!canReroll.value || !chatStore.ticketDraft) return;
 
-  const currentImageUrl = chatStore.ticketDraft.image_url;
-  const currentIndex = rerollCandidates.value.findIndex((item) => item.image_url === currentImageUrl);
-  const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % rerollCandidates.value.length : 0;
-
-  chatStore.chooseCandidate(rerollCandidates.value[nextIndex].image_url);
+  const nextImageUrl = getNextRerollImageUrl(chatStore.ticketDraft.image_url, chatStore.ticketDraft.candidate_images);
+  if (!nextImageUrl) return;
+  chatStore.chooseCandidate(nextImageUrl);
 }
 
 async function confirmCard() {

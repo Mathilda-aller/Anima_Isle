@@ -93,3 +93,60 @@ def test_get_client_retries_after_failure(monkeypatch):
     recovered = search_engine._get_client()
     assert isinstance(recovered, _RecoveredClient)
     assert attempts["count"] == 2
+
+
+def test_search_island_candidates_recovers_after_initial_client_failure(monkeypatch):
+    attempts = {"count": 0}
+    recovered_client = _FakeClient(
+        intensity_hits=[_hit("a", 0.91, 1), _hit("b", 0.88, 1), _hit("c", 0.82, 1)],
+        island_hits=[],
+    )
+
+    def _factory(*args, **kwargs):
+        attempts["count"] += 1
+        if attempts["count"] == 1:
+            raise RuntimeError("temporary failure")
+        return recovered_client
+
+    monkeypatch.setattr(search_engine, "client", None)
+    monkeypatch.setattr(search_engine, "client_init_attempted", False)
+    monkeypatch.setattr(search_engine, "ZILLIZ_URI", "https://example.zilliz.com")
+    monkeypatch.setattr(search_engine, "ZILLIZ_TOKEN", "token")
+    monkeypatch.setattr(search_engine, "MilvusClient", _factory)
+
+    first = search_engine.search_island_candidates([0.1] * 1024, "ISLAND_1", intensity="HIGH", top_k=3)
+    second = search_engine.search_island_candidates([0.1] * 1024, "ISLAND_1", intensity="HIGH", top_k=3)
+
+    assert all(item["is_fallback"] is True for item in first)
+    assert [item["image_id"] for item in second] == ["a", "b", "c"]
+    assert all(item["is_fallback"] is False for item in second)
+    assert attempts["count"] == 2
+
+
+def test_search_island_candidates_deduplicates_across_primary_and_island_hits(monkeypatch):
+    fake_client = _FakeClient(
+        intensity_hits=[_hit("a", 0.91, 1), _hit("b", 0.88, 1)],
+        island_hits=[_hit("a", 0.91, 1), _hit("c", 0.80, 1), _hit("d", 0.79, 1)],
+    )
+    monkeypatch.setattr(search_engine, "client", fake_client)
+    monkeypatch.setattr(search_engine, "client_init_attempted", True)
+
+    result = search_engine.search_island_candidates([0.1] * 1024, "ISLAND_1", intensity="HIGH", top_k=3)
+
+    assert [item["image_id"] for item in result] == ["a", "b", "c"]
+
+
+def test_search_island_candidates_uses_static_fallback_only_when_all_hits_below_threshold(monkeypatch):
+    fake_client = _FakeClient(
+        intensity_hits=[_hit("a", 0.29, 1), _hit("b", 0.12, 1)],
+        island_hits=[_hit("c", 0.28, 1), _hit("d", 0.05, 1)],
+    )
+    monkeypatch.setattr(search_engine, "client", fake_client)
+    monkeypatch.setattr(search_engine, "client_init_attempted", True)
+    monkeypatch.setattr(search_engine, "IMAGE_BASE_URL", "https://oss.example.com")
+
+    result = search_engine.search_island_candidates([0.1] * 1024, "ISLAND_1", intensity="HIGH", top_k=3)
+
+    assert len(result) == 3
+    assert all(item["is_fallback"] is True for item in result)
+    assert all(item["image_url"].startswith("https://oss.example.com/") for item in result)

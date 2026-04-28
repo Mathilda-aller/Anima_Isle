@@ -15,6 +15,7 @@ from app.main import app
 import app.main as app_main
 from app.utils import ai_engine, risk_engine, search_engine, security
 from app.routers import chat as chat_router
+from app.constants.islands import DEFAULT_RECOMMENDED_TAGS
 
 
 class _RiskResult:
@@ -518,14 +519,208 @@ def test_chat_reply_generation_failure_keeps_session_retryable(client, db_sessio
     failed = client.post("/chat/reply", json={"session_id": session_id, "content": "第二轮"}, headers=headers)
 
     assert failed.status_code == 500
-    assert crud.get_chat_session(db_session, session_id).current_step == 1
 
-    retried = client.post("/chat/reply", json={"session_id": session_id, "content": "第二轮重试"}, headers=headers)
 
-    assert retried.status_code == 200
-    assert retried.json()["state"] == "finished"
-    assert crud.get_chat_session(db_session, session_id).current_step == 3
-    assert db_session.query(models.Ticket).count() == 1
+def test_chat_reply_returns_ai_connection_error_when_emotion_route_fails(client, db_session, monkeypatch, caplog):
+    async def _risk(*args, **kwargs):
+        return _safe_result()
+
+    async def _empathy(*args, **kwargs):
+        return "我在听你说。"
+
+    async def _route(*args, **kwargs):
+        raise ai_engine.AIEngineError("ai_connection_failed", "emotion_route", "emotion_route connection failed")
+
+    async def _embedding(*args, **kwargs):
+        return [0.1] * 1024
+
+    monkeypatch.setattr(risk_engine, "check_text_risk", _risk)
+    monkeypatch.setattr(ai_engine, "generate_empathy_text", _empathy)
+    monkeypatch.setattr(ai_engine, "classify_emotion_route", _route)
+    monkeypatch.setattr(ai_engine, "get_embedding", _embedding)
+
+    token = _register_and_get_token(db_session)
+    headers = {"Authorization": f"Bearer {token}"}
+    caplog.set_level(logging.INFO)
+    session_id = client.post("/chat/start", headers=headers).json()["session_id"]
+    client.post("/chat/reply", json={"session_id": session_id, "content": "第一轮"}, headers=headers)
+
+    response = client.post("/chat/reply", json={"session_id": session_id, "content": "第二轮"}, headers=headers)
+
+    assert response.status_code == 500
+    assert response.json()["detail"].startswith("ai_connection_failed|trace_id=")
+    assert '"step_name": "emotion_route"' in caplog.text
+    assert '"error_code": "ai_connection_failed"' in caplog.text
+
+
+def test_chat_reply_stream_emits_error_event_when_emotion_route_fails(client, db_session, monkeypatch):
+    async def _risk(*args, **kwargs):
+        return _safe_result()
+
+    async def _stream(*args, **kwargs):
+        yield "我在听你说。"
+
+    async def _route(*args, **kwargs):
+        raise ai_engine.AIEngineError("ai_connection_failed", "emotion_route", "emotion_route connection failed")
+
+    async def _embedding(*args, **kwargs):
+        return [0.1] * 1024
+
+    monkeypatch.setattr(risk_engine, "check_text_risk", _risk)
+    monkeypatch.setattr(ai_engine, "stream_empathy_text", _stream)
+    monkeypatch.setattr(ai_engine, "classify_emotion_route", _route)
+    monkeypatch.setattr(ai_engine, "get_embedding", _embedding)
+
+    token = _register_and_get_token(db_session)
+    headers = {"Authorization": f"Bearer {token}"}
+    session_id = client.post("/chat/start", headers=headers).json()["session_id"]
+    client.post("/chat/reply", json={"session_id": session_id, "content": "第一轮"}, headers=headers)
+
+    with client.stream(
+        "POST",
+        "/chat/reply/stream",
+        json={"session_id": session_id, "content": "第二轮"},
+        headers=headers,
+    ) as response:
+        body = "".join(line.decode("utf-8") if isinstance(line, bytes) else line for line in response.iter_lines())
+
+    assert response.status_code == 200
+    assert "event: error" in body
+    assert '"code": "ai_connection_failed"' in body
+    assert '"message": "emotion_route connection failed"' in body
+    assert '"status": "error"' in body
+    assert "event: asset_ready" not in body
+
+
+def test_chat_reply_uses_default_tags_when_tag_generation_fails(client, db_session, monkeypatch, caplog):
+    async def _risk(*args, **kwargs):
+        return _safe_result()
+
+    async def _empathy(*args, **kwargs):
+        return "我在听你说。"
+
+    async def _route(*args, **kwargs):
+        return {"Island": "RAIN", "Intensity": "LOW"}
+
+    async def _embedding(*args, **kwargs):
+        return [0.1] * 1024
+
+    async def _tags(*args, **kwargs):
+        raise ai_engine.AIEngineError("ai_connection_failed", "suggested_tags", "suggested_tags connection failed")
+
+    async def _poem(_user_input, image_description, **kwargs):
+        return f"诗句-{image_description}"
+
+    def _search(*args, **kwargs):
+        return [_candidate("img-1", 0), _candidate("img-2", 1), _candidate("img-3", 2)]
+
+    monkeypatch.setattr(risk_engine, "check_text_risk", _risk)
+    monkeypatch.setattr(ai_engine, "generate_empathy_text", _empathy)
+    monkeypatch.setattr(ai_engine, "classify_emotion_route", _route)
+    monkeypatch.setattr(ai_engine, "get_embedding", _embedding)
+    monkeypatch.setattr(ai_engine, "generate_suggested_tags", _tags)
+    monkeypatch.setattr(ai_engine, "generate_three_line_poem", _poem)
+    monkeypatch.setattr(search_engine, "search_island_candidates", _search)
+
+    token = _register_and_get_token(db_session)
+    headers = {"Authorization": f"Bearer {token}"}
+    caplog.set_level(logging.INFO)
+    session_id = client.post("/chat/start", headers=headers).json()["session_id"]
+    client.post("/chat/reply", json={"session_id": session_id, "content": "第一轮"}, headers=headers)
+
+    response = client.post("/chat/reply", json={"session_id": session_id, "content": "第二轮"}, headers=headers)
+
+    assert response.status_code == 200
+    assert response.json()["state"] == "finished"
+    assert response.json()["ticket_data"]["recommended_tags"] == DEFAULT_RECOMMENDED_TAGS
+    assert "suggested_tags fallback used" in caplog.text
+
+
+def test_chat_reply_stream_uses_fallback_reply_when_stream_yields_nothing(client, db_session, monkeypatch):
+    async def _risk(*args, **kwargs):
+        return _safe_result()
+
+    async def _stream(*args, **kwargs):
+        if False:
+            yield ""
+
+    async def _route(*args, **kwargs):
+        return {"Island": "RAIN", "Intensity": "LOW"}
+
+    async def _embedding(*args, **kwargs):
+        return [0.1] * 1024
+
+    async def _poem(_user_input, image_description, **kwargs):
+        return f"诗句-{image_description}"
+
+    def _search(*args, **kwargs):
+        return [_candidate("img-1", 0), _candidate("img-2", 1), _candidate("img-3", 2)]
+
+    monkeypatch.setattr(risk_engine, "check_text_risk", _risk)
+    monkeypatch.setattr(ai_engine, "stream_empathy_text", _stream)
+    monkeypatch.setattr(ai_engine, "classify_emotion_route", _route)
+    monkeypatch.setattr(ai_engine, "get_embedding", _embedding)
+    monkeypatch.setattr(ai_engine, "generate_three_line_poem", _poem)
+    monkeypatch.setattr(search_engine, "search_island_candidates", _search)
+
+    token = _register_and_get_token(db_session)
+    headers = {"Authorization": f"Bearer {token}"}
+    session_id = client.post("/chat/start", headers=headers).json()["session_id"]
+    client.post("/chat/reply", json={"session_id": session_id, "content": "第一轮"}, headers=headers)
+
+    with client.stream(
+        "POST",
+        "/chat/reply/stream",
+        json={"session_id": session_id, "content": "第二轮"},
+        headers=headers,
+    ) as response:
+        body = "".join(line.decode("utf-8") if isinstance(line, bytes) else line for line in response.iter_lines())
+
+    assert response.status_code == 200
+    assert '"reply_text":' in body
+    assert ai_engine._safe_fallback_reply() in body
+    assert "event: asset_ready" in body
+
+
+def test_chat_reply_fails_when_non_primary_poem_generation_fails(client, db_session, monkeypatch):
+    async def _risk(*args, **kwargs):
+        return _safe_result()
+
+    async def _empathy(*args, **kwargs):
+        return "我在听你说。"
+
+    async def _route(*args, **kwargs):
+        return {"Island": "RAIN", "Intensity": "LOW"}
+
+    async def _embedding(*args, **kwargs):
+        return [0.1] * 1024
+
+    async def _poem(_user_input, image_description, **kwargs):
+        if image_description == "image-description-1":
+            raise RuntimeError("poem candidate failed")
+        return f"诗句-{image_description}"
+
+    def _search(*args, **kwargs):
+        return [_candidate("img-1", 0), _candidate("img-2", 1), _candidate("img-3", 2)]
+
+    monkeypatch.setattr(risk_engine, "check_text_risk", _risk)
+    monkeypatch.setattr(ai_engine, "generate_empathy_text", _empathy)
+    monkeypatch.setattr(ai_engine, "classify_emotion_route", _route)
+    monkeypatch.setattr(ai_engine, "get_embedding", _embedding)
+    monkeypatch.setattr(ai_engine, "generate_three_line_poem", _poem)
+    monkeypatch.setattr(search_engine, "search_island_candidates", _search)
+
+    token = _register_and_get_token(db_session)
+    headers = {"Authorization": f"Bearer {token}"}
+    session_id = client.post("/chat/start", headers=headers).json()["session_id"]
+    client.post("/chat/reply", json={"session_id": session_id, "content": "第一轮"}, headers=headers)
+
+    response = client.post("/chat/reply", json={"session_id": session_id, "content": "第二轮"}, headers=headers)
+
+    assert response.status_code == 500
+    refreshed = crud.get_chat_session(db_session, session_id)
+    assert refreshed.current_step == 1
+    assert db_session.query(models.Ticket).count() == 0
 
 
 def test_confirm_ticket_updates_poem_with_selected_image(client, db_session):

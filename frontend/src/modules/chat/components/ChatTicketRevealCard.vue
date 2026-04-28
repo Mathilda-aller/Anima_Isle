@@ -1,5 +1,11 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
+import {
+  getFailedTicketRevealImageState,
+  getLoadedTicketRevealImageState,
+  getTicketRevealImageState,
+  type TicketRevealImageState,
+} from "@/modules/chat/utils/ticketReveal";
 
 const props = withDefaults(
   defineProps<{
@@ -28,16 +34,12 @@ const emit = defineEmits<{
   (e: "reroll"): void;
 }>();
 
-const imageState = ref<"idle" | "loading" | "ready" | "error">("idle");
+const imageState = ref<TicketRevealImageState>("idle");
 
 watch(
   () => [props.imageUrl, props.prefetchedImageUrl] as const,
   ([nextImageUrl, prefetchedImageUrl]) => {
-    if (!nextImageUrl) {
-      imageState.value = "idle";
-      return;
-    }
-    imageState.value = nextImageUrl === prefetchedImageUrl ? "ready" : "loading";
+    imageState.value = getTicketRevealImageState(nextImageUrl, prefetchedImageUrl);
   },
   { immediate: true },
 );
@@ -53,11 +55,11 @@ function onReroll() {
 }
 
 function handleImageLoad() {
-  imageState.value = "ready";
+  imageState.value = getLoadedTicketRevealImageState();
 }
 
 function handleImageError() {
-  imageState.value = "error";
+  imageState.value = getFailedTicketRevealImageState();
 }
 </script>
 

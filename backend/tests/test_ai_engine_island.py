@@ -1,6 +1,8 @@
 import asyncio
 
 import pytest
+import httpx
+from openai import APIConnectionError
 from app.constants.islands import DEFAULT_ISLAND_KEY, ISLAND_KEYS
 from app.utils import ai_engine
 
@@ -53,3 +55,16 @@ def test_analyze_island_tags_and_reply_normalize(monkeypatch):
     assert result["recommended_tags"][0] == "#孤独"
     assert all(tag.startswith("#") for tag in result["recommended_tags"])
     assert DEFAULT_ISLAND_KEY in ISLAND_KEYS
+
+
+def test_stream_empathy_text_yields_safe_fallback_on_connection_error(monkeypatch):
+    async def _raise(*args, **kwargs):
+        raise APIConnectionError(request=httpx.Request("POST", "https://example.com"))
+
+    monkeypatch.setattr(ai_engine.client.chat.completions, "create", _raise)
+
+    async def _collect():
+        return [chunk async for chunk in ai_engine.stream_empathy_text("今天很乱")]
+
+    chunks = asyncio.run(_collect())
+    assert chunks == [ai_engine._safe_fallback_reply()]
