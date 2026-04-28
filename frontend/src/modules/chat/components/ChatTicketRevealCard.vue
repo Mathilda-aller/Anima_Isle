@@ -196,29 +196,11 @@ function handleImageError() {
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1rpx solid rgba(230, 248, 255, 0.48);
+  border: 1rpx solid rgba(230, 248, 255, 0.6);
   border-radius: 36rpx;
   background: rgba(0, 0, 0, 0);
+  box-shadow: inset 0 0 0 1rpx rgba(255, 255, 255, 0.12);
   transition: opacity 180ms ease, transform 180ms ease;
-}
-
-.chat-ticket-reveal-card__accept::before,
-.chat-ticket-reveal-card__accept::after {
-  content: "";
-  position: absolute;
-  top: -2rpx;
-  width: 54rpx;
-  height: 14rpx;
-  border-radius: 2rpx;
-  background: linear-gradient(180deg, rgba(22, 59, 102, 0.92) 0%, rgba(7, 39, 67, 0.72) 100%);
-}
-
-.chat-ticket-reveal-card__accept::before {
-  left: 48rpx;
-}
-
-.chat-ticket-reveal-card__accept::after {
-  right: 48rpx;
 }
 
 .chat-ticket-reveal-card__accept-text {
