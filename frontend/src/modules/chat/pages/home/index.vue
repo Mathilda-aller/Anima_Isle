@@ -12,7 +12,6 @@ import VoiceInputButton from "@/modules/chat/components/VoiceInputButton.vue";
 import NightIp from "@/shared/components/NightIp.vue";
 import StageViewportShell from "@/shared/components/StageViewportShell.vue";
 import { getStyleOnboardingCompleted } from "@/infrastructure/storage/auth";
-import { getErrorMessage } from "@/shared/utils/error";
 
 const authStore = useAuthStore();
 const chatStore = useChatStore();
@@ -26,30 +25,16 @@ onShow(() => {
   }
   if (!getStyleOnboardingCompleted()) {
     uni.reLaunch({ url: ROUTES.STYLE_PICKER });
+    return;
+  }
+  if (chatStore.ticketDraft || chatStore.step >= 2) {
+    chatStore.resetSession();
   }
 });
-
-function normalizeError(error: unknown): string {
-  return getErrorMessage(error, "请求失败，请稍后重试");
-}
 
 function openComposer() {
   chatStore.resetSession();
   navigateToWithFeedback(`${ROUTES.CHAT_CABIN}?fresh=1`);
-}
-
-async function onConfirmTicket() {
-  errorMsg.value = "";
-  try {
-    await chatStore.confirmTicketSelection();
-    uni.showToast({ title: "已收下船票", icon: "success" });
-  } catch (error) {
-    errorMsg.value = normalizeError(error);
-  }
-}
-
-function chooseCandidate(imageUrl: string) {
-  chatStore.chooseCandidate(imageUrl);
 }
 
 function openVoiceInput() {
@@ -67,11 +52,6 @@ function goResident() {
 
 function goSquare() {
   navigateToWithFeedback(ROUTES.SQUARE_MAP);
-}
-
-function goPublish() {
-  if (!chatStore.ticketDraft) return;
-  navigateToWithFeedback(`${ROUTES.SQUARE_PUBLISH}?ticket_uid=${encodeURIComponent(chatStore.ticketDraft.ticket_uid)}`);
 }
 </script>
 
@@ -119,26 +99,6 @@ function goPublish() {
             :icon="CHAT_ASSETS.icons.writeEntry"
             :glow-image="CHAT_ASSETS.images.inputGlow"
           />
-        </view>
-      </view>
-
-      <view v-if="chatStore.ticketDraft" class="ticket-result">
-        <image class="ticket-image" :src="chatStore.ticketDraft.image_url" mode="aspectFill" />
-        <text class="ticket-poem">{{ chatStore.ticketDraft.poem_content }}</text>
-        <view class="candidate-grid">
-          <view
-            v-for="item in chatStore.ticketDraft.candidate_images"
-            :key="item.image_url"
-            class="candidate"
-            hover-class="tap-hover"
-            @click="chooseCandidate(item.image_url)"
-          >
-            <image :src="item.image_url" mode="aspectFill" />
-          </view>
-        </view>
-        <view class="ticket-actions">
-          <button class="small-btn" hover-class="button-hover" @click="onConfirmTicket">收下船票</button>
-          <button class="small-btn ghost" hover-class="button-hover" @click="goPublish">发送到岛屿</button>
         </view>
       </view>
 
@@ -334,64 +294,6 @@ function goPublish() {
 
 .action-trigger {
   transition: opacity 140ms ease, transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.ticket-result {
-  position: relative;
-  margin: 24rpx;
-  padding: 18rpx;
-  border-radius: $anima-radius-lg;
-  background: $anima-surface-card;
-  z-index: 3;
-}
-
-.ticket-image {
-  width: 100%;
-  height: 300rpx;
-  border-radius: $anima-radius-sm;
-}
-
-.ticket-poem {
-  margin-top: 10rpx;
-  display: block;
-  color: $text-primary;
-  white-space: pre-wrap;
-  font-family: $anima-font-display;
-}
-
-.candidate-grid {
-  margin-top: 12rpx;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10rpx;
-}
-
-.candidate {
-  height: 120rpx;
-}
-
-.candidate image {
-  width: 100%;
-  height: 100%;
-  border-radius: $anima-radius-sm;
-}
-
-.ticket-actions {
-  margin-top: 12rpx;
-  display: flex;
-  gap: 10rpx;
-}
-
-.small-btn {
-  flex: 1;
-  border: none;
-  border-radius: $anima-radius-sm;
-  background: $anima-button-primary;
-  color: $text-primary;
-}
-
-.small-btn.ghost {
-  background: $anima-button-secondary;
 }
 
 .error {
