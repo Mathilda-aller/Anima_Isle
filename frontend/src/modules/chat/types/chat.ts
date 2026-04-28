@@ -21,7 +21,6 @@ export interface ChatReplyRequest {
 
 export interface ChatVoiceTranscribeResponse {
   session_id: string;
-  question_index: number;
   text: string;
   duration: number;
   is_final: boolean;
@@ -52,7 +51,7 @@ export interface ChatTicketData {
 
 export interface ChatStepResponse {
   session_id: string;
-  state: "processing" | "finished" | "risk_blocked";
+  state: "finished" | "risk_blocked";
   reply_text: string;
   ticket_data?: ChatTicketData;
 }
@@ -84,12 +83,10 @@ export interface ChatSessionState {
   sessionId: string;
   step: 0 | 1 | 2 | 3;
   q1: string;
-  q2: string;
   answer1: string;
-  answer2: string;
-  pendingFinalAnswer: string;
-  pendingFinalAnswerIsVoice: boolean;
-  pendingFinalAnswerDuration: number;
+  pendingAnswer: string;
+  pendingAnswerIsVoice: boolean;
+  pendingAnswerDuration: number;
   generationState: ChatGenerationState;
   replyText: string;
   ticketDraft: ChatTicketData | null;

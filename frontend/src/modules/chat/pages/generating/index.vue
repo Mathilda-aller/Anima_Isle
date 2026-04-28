@@ -54,8 +54,7 @@ const ticketImageUrl = computed(() => chatStore.ticketDraft?.image_url ?? "");
 const rerollCandidates = computed(() => getRerollCandidates(chatStore.ticketDraft?.candidate_images ?? []));
 const canReroll = computed(() => canRerollCandidates(chatStore.ticketDraft?.candidate_images ?? [], confirmLoading.value));
 const thinkingExcerptText = computed(() => {
-  const segments = [chatStore.answer1.trim(), (chatStore.pendingFinalAnswer || chatStore.answer2).trim()].filter(Boolean);
-  return segments.join("\n");
+  return chatStore.answer1.trim();
 });
 const responseText = computed(() => {
   const raw = chatStore.replyText?.trim();
@@ -206,7 +205,7 @@ function startRevealFlow(token: number) {
 }
 
 async function beginGeneratingIfNeeded() {
-  if (generatingStarted.value || !chatStore.pendingFinalAnswer) return;
+  if (generatingStarted.value || !chatStore.pendingAnswer) return;
 
   const flowToken = generationFlowGuard.begin();
   generatingStarted.value = true;
@@ -214,7 +213,7 @@ async function beginGeneratingIfNeeded() {
   errorMsg.value = "";
 
   try {
-    await chatStore.streamPendingFinalAnswer();
+    await chatStore.streamPendingAnswer();
 
     if (!generationFlowGuard.isCurrent(flowToken)) {
       return;
@@ -264,7 +263,7 @@ async function syncFlow() {
     return;
   }
 
-  if (!chatStore.sessionId && !chatStore.ticketDraft && !chatStore.pendingFinalAnswer) {
+  if (!chatStore.sessionId && !chatStore.ticketDraft && !chatStore.pendingAnswer) {
     toChatHome();
     return;
   }
@@ -364,7 +363,7 @@ watch(
 
 onBeforeUnmount(() => {
   generationFlowGuard.invalidate();
-  chatStore.cancelActiveChatWork(["final_stream"]);
+  chatStore.cancelActiveChatWork(["reply_stream"]);
   generatingStarted.value = false;
   resetStageState();
   clearRevealTimer();

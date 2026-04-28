@@ -246,8 +246,6 @@ def save_chat_answer(db: Session, session_id: str, answer: str, turn_index: int)
     db_session.updated_at = datetime.now()
     if turn_index == 1:
         db_session.turn_1_answer = answer
-    elif turn_index == 2:
-        db_session.turn_2_answer = answer
 
     db.commit()
     db.refresh(db_session)
@@ -263,8 +261,6 @@ def update_chat_step(db: Session, session_id: str, step: int, answer: str = None
     
     if answer and turn_index == 1:
         db_session.turn_1_answer = answer
-    elif answer and turn_index == 2:
-        db_session.turn_2_answer = answer
         
     db.commit()
     db.refresh(db_session)

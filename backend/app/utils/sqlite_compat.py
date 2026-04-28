@@ -7,7 +7,7 @@ from app.database import engine
 
 logger = logging.getLogger(__name__)
 
-LATEST_ALEMBIC_REVISION = "d3f0b9d5d6a1"
+LATEST_ALEMBIC_REVISION = "f8c1d7e4b2a9"
 
 
 def ensure_sqlite_dev_schema_compatibility() -> None:

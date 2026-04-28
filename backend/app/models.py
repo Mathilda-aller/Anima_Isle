@@ -41,7 +41,6 @@ class ChatSession(Base):
     current_step = Column(Integer, default=0) 
     
     turn_1_answer = Column(Text, nullable=True)
-    turn_2_answer = Column(Text, nullable=True)
 
     created_at = Column(DateTime, default=datetime.now)
     updated_at = Column(DateTime, default=datetime.now)

@@ -1,13 +1,11 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, ref } from "vue";
+import { computed, ref } from "vue";
 import { onLoad, onShow } from "@dcloudio/uni-app";
 import ChatCabinScene from "@/modules/chat/components/ChatCabinScene.vue";
 import CabinTextInputBlock from "@/modules/chat/components/CabinTextInputBlock.vue";
 import ChatDailyLimitModal from "@/modules/chat/components/ChatDailyLimitModal.vue";
 import { useAuthStore } from "@/modules/auth/store/auth";
 import { useChatStore } from "@/modules/chat/store/chat";
-import { createAsyncFlowGuard } from "@/modules/chat/utils/asyncFlowGuard";
-import { isRequestAbortedError } from "@/infrastructure/http/request";
 import { ROUTES } from "@/shared/constants/routes";
 import { ApiError } from "@/shared/types/http";
 import { getErrorMessage } from "@/shared/utils/error";
@@ -15,19 +13,13 @@ import { toChatHome, toLogin } from "@/shared/utils/navigation";
 
 const authStore = useAuthStore();
 const chatStore = useChatStore();
-const cabinAsyncGuard = createAsyncFlowGuard();
 
 const inputValue = ref("");
 const errorMsg = ref("");
 const freshOpen = ref(false);
-const sceneTransitioning = ref(false);
 const dailyLimitModalVisible = ref(false);
-const cabinFlow = ref<"first" | "submitted-preview" | "second">("first");
 const cabinUiState = ref<"prompt" | "focus" | "typing">("prompt");
-const currentQuestionIndex = ref<1 | 2>(1);
 const cabinPromptText = ref("");
-const secondPromptText = ref("");
-const submittedPreviewText = ref("");
 
 const placeholderText = computed(() => "这一刻，想写下什么…");
 
@@ -40,38 +32,21 @@ const estimatedLineCount = computed(() => {
   }, 0);
 });
 
-const showPrompt = computed(() => cabinFlow.value === "first" && cabinUiState.value === "prompt");
-const showVoiceIcon = computed(() => cabinFlow.value !== "submitted-preview" && cabinUiState.value !== "typing");
+const showPrompt = computed(() => cabinUiState.value === "prompt");
+const showVoiceIcon = computed(() => cabinUiState.value !== "typing");
 const interactionTop = computed(() => {
-  if (cabinFlow.value === "submitted-preview") return "47.94%";
-  if (cabinFlow.value === "second") return "56.75%";
   if (cabinUiState.value === "prompt") return "57.21%";
   if (cabinUiState.value === "focus") return "48.05%";
   return "47.94%";
 });
-const interactionLeft = computed(() => {
-  if (cabinFlow.value === "submitted-preview") return "10.45%";
-  if (cabinFlow.value === "second") return "13.18%";
-  return cabinUiState.value === "typing" ? "10.45%" : "13.18%";
-});
-const interactionWidth = computed(() => (cabinFlow.value === "submitted-preview" ? "81.09%" : "78.36%"));
+const interactionLeft = computed(() => (cabinUiState.value === "typing" ? "10.45%" : "13.18%"));
+const interactionWidth = computed(() => "78.36%");
 const clampedLineCount = computed(() => Math.min(Math.max(estimatedLineCount.value, 1), 4));
-const textareaHeight = computed(() => {
-  if (cabinFlow.value === "submitted-preview") return "224rpx";
-  return `${clampedLineCount.value * 56 + 14}rpx`;
-});
-const inputMinHeight = computed(() => {
-  if (cabinFlow.value === "submitted-preview") return "224rpx";
-  if (cabinFlow.value === "second") return "90rpx";
-  return textareaHeight.value;
-});
-const focusInput = computed(() => cabinFlow.value !== "submitted-preview" && cabinUiState.value !== "prompt");
-const showCenterText = computed(() => cabinFlow.value === "second");
-const composerGap = computed(() => (cabinFlow.value === "second" ? "46rpx" : "64rpx"));
-const inputDisabled = computed(() => chatStore.loading || cabinFlow.value === "submitted-preview");
-const showSubmit = computed(() => cabinFlow.value !== "submitted-preview");
-const activeModelValue = computed(() => (cabinFlow.value === "submitted-preview" ? submittedPreviewText.value : inputValue.value));
-const activePlaceholder = computed(() => (cabinFlow.value === "submitted-preview" ? "" : placeholderText.value));
+const textareaHeight = computed(() => `${clampedLineCount.value * 56 + 14}rpx`);
+const inputMinHeight = computed(() => textareaHeight.value);
+const focusInput = computed(() => cabinUiState.value !== "prompt");
+const composerGap = computed(() => "64rpx");
+const inputDisabled = computed(() => chatStore.loading);
 
 function normalizeError(error: unknown): string {
   return getErrorMessage(error, "请求失败，请稍后重试");
@@ -99,12 +74,8 @@ async function ensureSession() {
 function resetCabinFlow() {
   inputValue.value = "";
   errorMsg.value = "";
-  cabinFlow.value = "first";
   cabinUiState.value = "prompt";
-  currentQuestionIndex.value = 1;
   cabinPromptText.value = "";
-  submittedPreviewText.value = "";
-  secondPromptText.value = "";
 }
 
 onLoad((options) => {
@@ -133,11 +104,6 @@ onShow(async () => {
     }
     await ensureSession();
     cabinPromptText.value = chatStore.q1 ? `“${chatStore.q1}”` : "";
-    if (chatStore.step === 1) {
-      cabinFlow.value = "second";
-      currentQuestionIndex.value = 2;
-      secondPromptText.value = chatStore.q2 || "";
-    }
   } catch (error) {
     if (isDailyTicketLimitError(error)) {
       showDailyLimitModal();
@@ -147,75 +113,22 @@ onShow(async () => {
   }
 });
 
-onBeforeUnmount(() => {
-  cabinAsyncGuard.invalidate();
-  chatStore.cancelActiveChatWork(["q1_submit"]);
-});
-
 async function submitAnswer() {
   const content = inputValue.value.trim();
   if (!content || chatStore.loading) return;
-  const actionToken = cabinAsyncGuard.begin();
 
   errorMsg.value = "";
   try {
     await ensureSession();
-
-    const isFirstAnswer = currentQuestionIndex.value === 1;
-    if (isFirstAnswer) {
-      submittedPreviewText.value = content;
-      cabinFlow.value = "submitted-preview";
-      cabinUiState.value = "typing";
-    }
-
-    if (isFirstAnswer) {
-      const previewStart = Date.now();
-      await chatStore.submitAnswer(content);
-
-      if (!cabinAsyncGuard.isCurrent(actionToken)) {
-        return;
-      }
-
-      if (chatStore.generationState === "risk_blocked") {
-        uni.navigateTo({ url: ROUTES.AID });
-        return;
-      }
-
-      const elapsed = Date.now() - previewStart;
-      const previewDelay = Math.max(0, 1200 - elapsed);
-      if (previewDelay > 0) {
-        await new Promise((resolve) => setTimeout(resolve, previewDelay));
-      }
-      sceneTransitioning.value = true;
-      await new Promise((resolve) => setTimeout(resolve, 180));
-      inputValue.value = "";
-      cabinFlow.value = "second";
-      cabinUiState.value = "prompt";
-      currentQuestionIndex.value = 2;
-      secondPromptText.value = chatStore.q2 || "";
-      await nextTick();
-      if (!cabinAsyncGuard.isCurrent(actionToken)) {
-        return;
-      }
-      sceneTransitioning.value = false;
-      return;
-    }
-
-    chatStore.queueFinalAnswer(content);
+    chatStore.queuePendingAnswer(content);
     inputValue.value = "";
-    cabinAsyncGuard.invalidate();
     uni.redirectTo({ url: ROUTES.CHAT_GENERATING });
   } catch (error) {
-    if (!cabinAsyncGuard.isCurrent(actionToken) || isRequestAbortedError(error)) {
-      return;
-    }
     errorMsg.value = normalizeError(error);
   }
 }
 
 function goBack() {
-  cabinAsyncGuard.invalidate();
-  chatStore.cancelActiveChatWork(["q1_submit"]);
   const pages = getCurrentPages();
   if (pages.length > 1) {
     uni.navigateBack();
@@ -225,7 +138,6 @@ function goBack() {
 }
 
 function onFocusComposer() {
-  if (cabinFlow.value === "submitted-preview") return;
   if (cabinUiState.value === "prompt") {
     cabinUiState.value = "focus";
   }
@@ -233,13 +145,10 @@ function onFocusComposer() {
 
 function onInputValue(value: string) {
   inputValue.value = value;
-  if (cabinFlow.value === "submitted-preview") return;
   cabinUiState.value = value.trim() && estimatedLineCount.value > 1 ? "typing" : "focus";
 }
 
 function openVoiceInput() {
-  cabinAsyncGuard.invalidate();
-  chatStore.cancelActiveChatWork(["q1_submit"]);
   uni.navigateTo({ url: ROUTES.CHAT_VOICE });
 }
 </script>
@@ -248,20 +157,16 @@ function openVoiceInput() {
   <ChatCabinScene
     :prompt-text="cabinPromptText"
     :show-prompt="showPrompt"
-    :show-center-text="showCenterText"
-    :center-text="secondPromptText"
     :interaction-top="interactionTop"
     :interaction-left="interactionLeft"
     :interaction-width="interactionWidth"
-    :transitioning="sceneTransitioning"
     @back="goBack"
   >
     <template #interaction>
       <CabinTextInputBlock
-        :model-value="activeModelValue"
-        :placeholder="activePlaceholder"
+        :model-value="inputValue"
+        :placeholder="placeholderText"
         :show-voice-icon="showVoiceIcon"
-        :show-submit="showSubmit"
         :submit-label="chatStore.loading ? '发送中' : '写好了'"
         :input-disabled="inputDisabled"
         :submit-disabled="chatStore.loading || !inputValue.trim()"
@@ -270,7 +175,6 @@ function openVoiceInput() {
         :textarea-height="textareaHeight"
         :input-max-length="200"
         :focus-input="focusInput"
-        :transitioning="sceneTransitioning"
         @focus="onFocusComposer"
         @voice="openVoiceInput"
         @submit="submitAnswer"

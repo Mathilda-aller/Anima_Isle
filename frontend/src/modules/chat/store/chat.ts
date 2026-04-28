@@ -1,11 +1,11 @@
 import { defineStore } from "pinia";
-import { startChat, replyChat, replyChatCancelable, confirmTicket, replyChatStreamCancelable } from "@/modules/chat/api/chat";
+import { startChat, confirmTicket, replyChatStreamCancelable } from "@/modules/chat/api/chat";
 import { isRequestAbortedError } from "@/infrastructure/http/request";
-import type { ChatSessionState, ChatStepResponse, ChatStreamEvent } from "@/modules/chat/types/chat";
+import type { ChatSessionState, ChatStreamEvent } from "@/modules/chat/types/chat";
 import { clearChatDraft, setChatDraft } from "@/infrastructure/storage/chat";
 import { logEvent } from "@/infrastructure/http/tracking";
 
-type ChatRequestKind = "q1_submit" | "voice_transcribe" | "final_stream";
+type ChatRequestKind = "voice_transcribe" | "reply_stream";
 
 interface ActiveRequestEntry {
   token: number;
@@ -14,49 +14,24 @@ interface ActiveRequestEntry {
 }
 
 const requestCounters: Record<ChatRequestKind, number> = {
-  q1_submit: 0,
   voice_transcribe: 0,
-  final_stream: 0,
+  reply_stream: 0,
 };
 
 const activeRequests: Record<ChatRequestKind, ActiveRequestEntry> = {
-  q1_submit: { token: 0, sessionId: "", cancel: null },
   voice_transcribe: { token: 0, sessionId: "", cancel: null },
-  final_stream: { token: 0, sessionId: "", cancel: null },
+  reply_stream: { token: 0, sessionId: "", cancel: null },
 };
-
-function applyReplyState(store: ChatSessionState, result: ChatStepResponse): void {
-  store.replyText = result.reply_text;
-
-  if (result.state === "processing") {
-    store.q2 = result.reply_text;
-    store.step = 1;
-    store.generationState = "processing";
-    return;
-  }
-
-  if (result.state === "risk_blocked") {
-    store.generationState = "risk_blocked";
-    store.step = 2;
-    return;
-  }
-
-  store.generationState = "finished";
-  store.step = 3;
-  store.ticketDraft = result.ticket_data || null;
-}
 
 export const useChatStore = defineStore("chat", {
   state: (): ChatSessionState => ({
     sessionId: "",
     step: 0,
     q1: "",
-    q2: "",
     answer1: "",
-    answer2: "",
-    pendingFinalAnswer: "",
-    pendingFinalAnswerIsVoice: false,
-    pendingFinalAnswerDuration: 0,
+    pendingAnswer: "",
+    pendingAnswerIsVoice: false,
+    pendingAnswerDuration: 0,
     generationState: "idle",
     replyText: "",
     ticketDraft: null,
@@ -109,7 +84,7 @@ export const useChatStore = defineStore("chat", {
       return true;
     },
 
-    cancelActiveChatWork(kinds: ChatRequestKind[] = ["q1_submit", "voice_transcribe", "final_stream"]) {
+    cancelActiveChatWork(kinds: ChatRequestKind[] = ["voice_transcribe", "reply_stream"]) {
       kinds.forEach((kind) => {
         const cancel = activeRequests[kind].cancel;
         requestCounters[kind] += 1;
@@ -128,12 +103,10 @@ export const useChatStore = defineStore("chat", {
       this.sessionId = "";
       this.step = 0;
       this.q1 = "";
-      this.q2 = "";
       this.answer1 = "";
-      this.answer2 = "";
-      this.pendingFinalAnswer = "";
-      this.pendingFinalAnswerIsVoice = false;
-      this.pendingFinalAnswerDuration = 0;
+      this.pendingAnswer = "";
+      this.pendingAnswerIsVoice = false;
+      this.pendingAnswerDuration = 0;
       this.generationState = "idle";
       this.replyText = "";
       this.ticketDraft = null;
@@ -149,7 +122,14 @@ export const useChatStore = defineStore("chat", {
         this.sessionId = res.session_id;
         this.q1 = res.first_question;
         this.step = 0;
+        this.answer1 = "";
+        this.pendingAnswer = "";
+        this.pendingAnswerIsVoice = false;
+        this.pendingAnswerDuration = 0;
         this.generationState = "idle";
+        this.replyText = "";
+        this.ticketDraft = null;
+        this.rerollCount = 0;
         this.streamError = "";
         await logEvent("chat_session_started", { session_id: this.sessionId });
       } finally {
@@ -157,7 +137,7 @@ export const useChatStore = defineStore("chat", {
       }
     },
 
-    async submitAnswer(
+    queuePendingAnswer(
       content: string,
       options: {
         isVoice?: boolean;
@@ -165,102 +145,29 @@ export const useChatStore = defineStore("chat", {
       } = {},
     ) {
       const clean = content.trim();
-      if (!clean || !this.sessionId) return;
-      const sessionId = this.sessionId;
-      const requestMeta = this.beginTrackedRequest("q1_submit", sessionId);
+      if (!clean || !this.sessionId || this.step >= 2) return;
 
-      this.loading = true;
-      try {
-        if (this.step === 0) {
-          this.answer1 = clean;
-        } else if (this.step === 1) {
-          this.answer2 = clean;
-        } else {
-          return;
-        }
-
-        const operation = replyChatCancelable({
-          session_id: this.sessionId,
-          content: clean,
-          is_voice: options.isVoice ?? false,
-          duration: options.duration ?? 0,
-        });
-        this.attachTrackedRequestCancel("q1_submit", requestMeta.token, sessionId, operation.cancel);
-        const result = await operation.promise;
-
-        if (!this.isTrackedRequestCurrent("q1_submit", requestMeta.token, sessionId)) {
-          return;
-        }
-
-        applyReplyState(this.$state, result);
-
-        setChatDraft({
-          sessionId: this.sessionId,
-          step: this.step,
-          answer1: this.answer1,
-          answer2: this.answer2,
-        });
-
-        await logEvent("chat_reply_submitted", {
-          session_id: this.sessionId,
-          step: this.step,
-          state: result.state,
-        });
-      } catch (error) {
-        if (isRequestAbortedError(error) || !this.isTrackedRequestCurrent("q1_submit", requestMeta.token, sessionId)) {
-          return;
-        }
-        throw error;
-      } finally {
-        if (this.finishTrackedRequest("q1_submit", requestMeta.token, sessionId)) {
-          this.loading = false;
-        }
-      }
-    },
-
-    queueFinalAnswer(
-      content: string,
-      options: {
-        isVoice?: boolean;
-        duration?: number;
-      } = {},
-    ) {
-      const clean = content.trim();
-      if (!clean || this.step !== 1 || !this.sessionId) return;
-
-      this.answer2 = clean;
-      this.pendingFinalAnswer = clean;
-      this.pendingFinalAnswerIsVoice = options.isVoice ?? false;
-      this.pendingFinalAnswerDuration = options.duration ?? 0;
+      this.answer1 = clean;
+      this.pendingAnswer = clean;
+      this.pendingAnswerIsVoice = options.isVoice ?? false;
+      this.pendingAnswerDuration = options.duration ?? 0;
+      this.step = 1;
       this.generationState = "processing";
       this.replyText = "";
       this.ticketDraft = null;
+      this.rerollCount = 0;
       this.streamError = "";
 
       setChatDraft({
         sessionId: this.sessionId,
         step: this.step,
         answer1: this.answer1,
-        answer2: this.answer2,
       });
-    },
-
-    async submitPendingFinalAnswer() {
-      if (!this.pendingFinalAnswer) return;
-
-      const content = this.pendingFinalAnswer;
-      const isVoice = this.pendingFinalAnswerIsVoice;
-      const duration = this.pendingFinalAnswerDuration;
-
-      this.pendingFinalAnswer = "";
-      this.pendingFinalAnswerIsVoice = false;
-      this.pendingFinalAnswerDuration = 0;
-
-      await this.submitAnswer(content, { isVoice, duration });
     },
 
     applyStreamEvent(event: ChatStreamEvent) {
       if (event.event === "ack") {
+        this.step = 1;
         this.generationState = "processing";
         this.streamError = "";
         return;
@@ -269,6 +176,7 @@ export const useChatStore = defineStore("chat", {
       if (event.event === "risk") {
         const level = String((event.data as Record<string, unknown>).level || "SAFE");
         if (level === "DANGER") {
+          this.step = 2;
           this.generationState = "risk_blocked";
         }
         return;
@@ -310,23 +218,24 @@ export const useChatStore = defineStore("chat", {
       }
     },
 
-    async streamPendingFinalAnswer() {
-      if (!this.pendingFinalAnswer || !this.sessionId) return;
+    async streamPendingAnswer() {
+      if (!this.pendingAnswer || !this.sessionId) return;
 
       const sessionId = this.sessionId;
-      const content = this.pendingFinalAnswer;
-      const isVoice = this.pendingFinalAnswerIsVoice;
-      const duration = this.pendingFinalAnswerDuration;
-      const requestMeta = this.beginTrackedRequest("final_stream", sessionId);
+      const content = this.pendingAnswer;
+      const isVoice = this.pendingAnswerIsVoice;
+      const duration = this.pendingAnswerDuration;
+      const requestMeta = this.beginTrackedRequest("reply_stream", sessionId);
 
-      this.pendingFinalAnswer = "";
-      this.pendingFinalAnswerIsVoice = false;
-      this.pendingFinalAnswerDuration = 0;
+      this.pendingAnswer = "";
+      this.pendingAnswerIsVoice = false;
+      this.pendingAnswerDuration = 0;
       this.loading = true;
       this.replyText = "";
       this.ticketDraft = null;
       this.streamError = "";
       this.generationState = "processing";
+      this.step = 1;
 
       try {
         const operation = replyChatStreamCancelable(
@@ -338,17 +247,17 @@ export const useChatStore = defineStore("chat", {
           },
           {
             onEvent: (event) => {
-              if (!this.isTrackedRequestCurrent("final_stream", requestMeta.token, sessionId)) {
+              if (!this.isTrackedRequestCurrent("reply_stream", requestMeta.token, sessionId)) {
                 return;
               }
               this.applyStreamEvent(event);
             },
           },
         );
-        this.attachTrackedRequestCancel("final_stream", requestMeta.token, sessionId, operation.cancel);
+        this.attachTrackedRequestCancel("reply_stream", requestMeta.token, sessionId, operation.cancel);
         await operation.promise;
 
-        if (!this.isTrackedRequestCurrent("final_stream", requestMeta.token, sessionId)) {
+        if (!this.isTrackedRequestCurrent("reply_stream", requestMeta.token, sessionId)) {
           return;
         }
 
@@ -357,12 +266,12 @@ export const useChatStore = defineStore("chat", {
           state: this.generationState,
         });
       } catch (error) {
-        if (isRequestAbortedError(error) || !this.isTrackedRequestCurrent("final_stream", requestMeta.token, sessionId)) {
+        if (isRequestAbortedError(error) || !this.isTrackedRequestCurrent("reply_stream", requestMeta.token, sessionId)) {
           return;
         }
         throw error;
       } finally {
-        if (this.finishTrackedRequest("final_stream", requestMeta.token, sessionId)) {
+        if (this.finishTrackedRequest("reply_stream", requestMeta.token, sessionId)) {
           this.loading = false;
         }
       }

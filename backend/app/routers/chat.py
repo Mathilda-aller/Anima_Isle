@@ -278,18 +278,16 @@ def load_questions_from_json() -> None:
         if os.path.exists(json_path):
             with open(json_path, "r", encoding="utf-8") as f:
                 QUESTIONS_DB = json.load(f)
-            logger.info("✅ [Startup] Loaded Questions: %s Turn-1 items.", len(QUESTIONS_DB.get("turn_1", [])))
+            logger.info("✅ [Startup] Loaded Questions: %s items.", len(QUESTIONS_DB.get("turn_1", [])))
         else:
             logger.warning("⚠️ [Startup] questions.json not found at %s", json_path)
             QUESTIONS_DB = {
                 "turn_1": ["今天过得怎么样？", "此刻你的心情颜色是什么？"],
-                "turn_2": ["能多跟我讲讲吗？", "这带给你什么样的感受？"],
             }
     except Exception as exc:
         logger.error("❌ [Startup] Failed to load questions.json: %s", exc)
         QUESTIONS_DB = {
             "turn_1": ["System Error: Default Q1"],
-            "turn_2": ["System Error: Default Q2"],
         }
 
 
@@ -309,7 +307,6 @@ def start_chat(
 @router.post("/transcribe", response_model=schemas.ChatVoiceTranscribeResponse)
 async def transcribe_chat_audio(
     session_id: str = Form(...),
-    question_index: int = Form(...),
     duration: float = Form(0.0),
     file: UploadFile = File(...),
     db: Session = Depends(deps.get_db),
@@ -321,12 +318,8 @@ async def transcribe_chat_audio(
         raise HTTPException(status_code=404, detail="Session not found")
     if session.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized to access this session")
-
-    expected_step = 0 if question_index == 1 else 1 if question_index == 2 else None
-    if expected_step is None:
-        raise HTTPException(status_code=422, detail="Unsupported question index")
-    if session.current_step != expected_step:
-        raise HTTPException(status_code=409, detail="Question index does not match current session step")
+    if session.current_step not in {0, 1}:
+        raise HTTPException(status_code=409, detail="Session no longer accepts input")
 
     audio_bytes = await file.read()
     if not audio_bytes:
@@ -358,7 +351,6 @@ async def transcribe_chat_audio(
 
     return schemas.ChatVoiceTranscribeResponse(
         session_id=session_id,
-        question_index=question_index,
         text=transcript_text,
         duration=duration,
         is_final=True,
@@ -547,7 +539,7 @@ async def _generate_ticket_bundle(
         raise
 
 
-async def _save_q2_and_build_context(
+async def _save_turn_1_and_build_context(
     *,
     db: Session,
     session: models.ChatSession,
@@ -556,13 +548,14 @@ async def _save_q2_and_build_context(
     user_id: int,
     breakdown: Dict[str, int],
 ) -> tuple[models.ChatSession, str]:
-    save_q2_started = _stage_start(trace_id, session.session_id, user_id, "save_q2")
+    save_input_started = _stage_start(trace_id, session.session_id, user_id, "save_input")
     try:
-        session = crud.save_chat_answer(
+        session = crud.update_chat_step(
             db,
             session_id=session.session_id,
+            step=1,
             answer=reply_req.content,
-            turn_index=2,
+            turn_index=1,
         )
     except SQLAlchemyError as exc:
         if _is_mysql_unsupported_character_error(exc):
@@ -571,8 +564,8 @@ async def _save_q2_and_build_context(
                 session.session_id,
                 user_id,
                 breakdown,
-                "save_q2",
-                save_q2_started,
+                "save_input",
+                save_input_started,
                 success=False,
                 error_code="chat_contains_unsupported_characters",
                 error_type=type(exc).__name__,
@@ -580,8 +573,8 @@ async def _save_q2_and_build_context(
             )
             raise HTTPException(status_code=400, detail="chat_contains_unsupported_characters") from exc
         raise
-    _stage_end(trace_id, session.session_id, user_id, breakdown, "save_q2", save_q2_started)
-    full_context = f"{session.turn_1_answer}。{session.turn_2_answer}"
+    _stage_end(trace_id, session.session_id, user_id, breakdown, "save_input", save_input_started)
+    full_context = session.turn_1_answer or ""
     return session, full_context
 
 
@@ -979,42 +972,7 @@ async def reply_chat(
     if session.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized to access this session")
 
-    if session.current_step == 0:
-        q2_list = QUESTIONS_DB.get("turn_2", ["还能再多说一点吗？"])
-        next_q = random.choice(q2_list)
-        save_q1_started = _stage_start(trace_id, session.session_id, current_user.id, "save_q1")
-        try:
-            crud.update_chat_step(db, session_id=session.session_id, step=1, answer=reply_req.content, turn_index=1)
-        except SQLAlchemyError as exc:
-            if _is_mysql_unsupported_character_error(exc):
-                _stage_end(
-                    trace_id,
-                    session.session_id,
-                    current_user.id,
-                    breakdown,
-                    "save_q1",
-                    save_q1_started,
-                    success=False,
-                    error_code="chat_contains_unsupported_characters",
-                    error_type=type(exc).__name__,
-                    error_message=str(exc),
-                )
-                raise HTTPException(status_code=400, detail="chat_contains_unsupported_characters") from exc
-            raise
-        _stage_end(trace_id, session.session_id, current_user.id, breakdown, "save_q1", save_q1_started)
-        _log_chat_event(
-            logging.INFO,
-            "chat.reply.request.end",
-            trace_id=trace_id,
-            session_id=session.session_id,
-            user_id=current_user.id,
-            state="processing",
-            elapsed_ms=int((time.perf_counter() - request_started) * 1000),
-            breakdown=breakdown,
-        )
-        return schemas.ChatStepResponse(session_id=session.session_id, state="processing", reply_text=next_q)
-
-    if session.current_step != 1:
+    if session.current_step not in {0, 1}:
         _log_chat_event(
             logging.INFO,
             "chat.reply.request.end",
@@ -1027,7 +985,7 @@ async def reply_chat(
         )
         return schemas.ChatStepResponse(session_id=session.session_id, state="finished", reply_text="本次会话已结束，请重新开始。")
 
-    session, full_context = await _save_q2_and_build_context(
+    session, full_context = await _save_turn_1_and_build_context(
         db=db,
         session=session,
         reply_req=reply_req,
@@ -1089,10 +1047,10 @@ async def reply_chat_stream(
 
     if session.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized to access this session")
-    if session.current_step != 1:
-        raise HTTPException(status_code=409, detail="Stream reply only supports the second answer")
+    if session.current_step not in {0, 1}:
+        raise HTTPException(status_code=409, detail="Stream reply only supports active sessions")
 
-    session, full_context = await _save_q2_and_build_context(
+    session, full_context = await _save_turn_1_and_build_context(
         db=db,
         session=session,
         reply_req=reply_req,

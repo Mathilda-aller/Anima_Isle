@@ -60,13 +60,10 @@ const rippleIntensity = ref(0);
 const errorMsg = ref("");
 const dailyLimitModalVisible = ref(false);
 const sceneTransitioning = ref(false);
-const voiceFlow = ref<"first" | "second">("first");
-const currentQuestionIndex = ref<1 | 2>(1);
 const transcriptPreviewText = ref("");
 const voicePromptText = ref("");
 const listeningPromptText = ref("我在听……");
 const transcribingPromptText = ref("正在整理你的声音……");
-const secondVoicePromptText = ref("");
 const reviewTranscriptText = ref("");
 const recordedAudioBlob = ref<Blob | null>(null);
 let mediaRecorder: MediaRecorder | null = null;
@@ -86,9 +83,6 @@ const durationText = computed(() => {
   const seconds = String(elapsedSeconds.value % 60).padStart(2, "0");
   return `${minutes}:${seconds}`;
 });
-const currentQuestionPromptText = computed(() => (
-  voiceFlow.value === "second" ? secondVoicePromptText.value : voicePromptText.value
-));
 
 onLoad((options) => {
   freshOpen.value = options?.fresh === "1";
@@ -117,12 +111,6 @@ onShow(async () => {
 
     await ensureSession();
     voicePromptText.value = chatStore.q1 ? `“${chatStore.q1}”` : "";
-
-    if (chatStore.step === 1) {
-      voiceFlow.value = "second";
-      currentQuestionIndex.value = 2;
-      secondVoicePromptText.value = chatStore.q2 || "";
-    }
   } catch (error) {
     if (isDailyTicketLimitError(error)) {
       showDailyLimitModal();
@@ -134,7 +122,7 @@ onShow(async () => {
 
 onBeforeUnmount(() => {
   voiceAsyncGuard.invalidate();
-  chatStore.cancelActiveChatWork(["voice_transcribe", "q1_submit"]);
+  chatStore.cancelActiveChatWork(["voice_transcribe"]);
   stopRecordingTimer();
   void releaseMediaStream();
   stopAnalyserLoop();
@@ -144,7 +132,7 @@ onBeforeUnmount(() => {
 const scenePromptText = computed(() => {
   if (voiceUiState.value === "recording") return listeningPromptText.value;
   if (voiceUiState.value === "transcribing") return transcribingPromptText.value;
-  return currentQuestionPromptText.value;
+  return voicePromptText.value;
 });
 const showCenterText = computed(() => {
   if (voiceUiState.value === "recording" || voiceUiState.value === "transcribing") {
@@ -212,11 +200,8 @@ function handleDailyLimitConfirm() {
 
 function resetVoiceFlow() {
   errorMsg.value = "";
-  voiceFlow.value = "first";
   voiceUiState.value = "idle";
-  currentQuestionIndex.value = 1;
   voicePromptText.value = "";
-  secondVoicePromptText.value = "";
   transcriptPreviewText.value = "";
   reviewTranscriptText.value = "";
   recordedAudioBlob.value = null;
@@ -227,7 +212,7 @@ function resetVoiceFlow() {
 
 function goBack() {
   voiceAsyncGuard.invalidate();
-  chatStore.cancelActiveChatWork(["voice_transcribe", "q1_submit"]);
+  chatStore.cancelActiveChatWork(["voice_transcribe"]);
   const pages = getCurrentPages();
   if (pages.length > 1) {
     uni.navigateBack();
@@ -295,27 +280,7 @@ async function submitReview() {
 
   try {
     await ensureSession();
-
-    if (currentQuestionIndex.value === 1) {
-      await chatStore.submitAnswer(submittedText, {
-        isVoice: true,
-        duration: elapsedSeconds.value,
-      });
-
-      if (!voiceAsyncGuard.isCurrent(actionToken)) {
-        return;
-      }
-
-      if (chatStore.generationState === "risk_blocked") {
-        uni.navigateTo({ url: ROUTES.AID });
-        return;
-      }
-
-      await transitionToSecondQuestion(actionToken);
-      return;
-    }
-
-    chatStore.queueFinalAnswer(submittedText, {
+    chatStore.queuePendingAnswer(submittedText, {
       isVoice: true,
       duration: elapsedSeconds.value,
     });
@@ -332,14 +297,14 @@ async function submitReview() {
 
 function openTextInput() {
   voiceAsyncGuard.invalidate();
-  chatStore.cancelActiveChatWork(["voice_transcribe", "q1_submit"]);
+  chatStore.cancelActiveChatWork(["voice_transcribe"]);
   const pages = getCurrentPages();
   const previousPage = pages[pages.length - 2];
   if (previousPage?.route === ROUTES.CHAT_CABIN.replace(/^\//, "")) {
     uni.navigateBack();
     return;
   }
-  uni.navigateTo({ url: `${ROUTES.CHAT_CABIN}?fresh=1` });
+  uni.navigateTo({ url: ROUTES.CHAT_CABIN });
 }
 
 function startRecordingTimer() {
@@ -504,9 +469,8 @@ async function transcribeRecordedAudio(blob: Blob): Promise<string> {
   const sessionId = chatStore.sessionId;
   const requestMeta = chatStore.beginTrackedRequest("voice_transcribe", sessionId);
   const formData = new FormData();
-  formData.append("file", blob, `question-${currentQuestionIndex.value}.webm`);
+  formData.append("file", blob, "answer.webm");
   formData.append("session_id", chatStore.sessionId);
-  formData.append("question_index", String(currentQuestionIndex.value));
   formData.append("duration", String(elapsedSeconds.value));
 
   try {
@@ -572,26 +536,6 @@ function stopAnalyserLoop() {
     analyserFrame = 0;
   }
   rippleIntensity.value = 0;
-}
-
-async function transitionToSecondQuestion(actionToken: number) {
-  errorMsg.value = "";
-  sceneTransitioning.value = true;
-  await new Promise((resolve) => setTimeout(resolve, 220));
-  if (!voiceAsyncGuard.isCurrent(actionToken)) {
-    return;
-  }
-  voiceFlow.value = "second";
-  voiceUiState.value = "idle";
-  currentQuestionIndex.value = 2;
-  secondVoicePromptText.value = chatStore.q2 || "";
-  elapsedSeconds.value = 0;
-  clearReviewState();
-  await new Promise((resolve) => setTimeout(resolve, 80));
-  if (!voiceAsyncGuard.isCurrent(actionToken)) {
-    return;
-  }
-  sceneTransitioning.value = false;
 }
 
 function startSpeechRecognition() {

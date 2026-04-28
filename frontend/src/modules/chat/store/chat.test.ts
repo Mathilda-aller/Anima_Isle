@@ -18,7 +18,7 @@ vi.mock("@/infrastructure/http/tracking", () => ({
   logEvent: vi.fn().mockResolvedValue(undefined),
 }));
 
-import { confirmTicket, replyChatCancelable, replyChatStreamCancelable } from "@/modules/chat/api/chat";
+import { confirmTicket, replyChatStreamCancelable } from "@/modules/chat/api/chat";
 import { useChatStore } from "@/modules/chat/store/chat";
 
 function deferred<T>() {
@@ -37,31 +37,16 @@ describe("chat store request isolation", () => {
     vi.clearAllMocks();
   });
 
-  it("ignores late first-answer replies after the session is reset", async () => {
+  it("queues the single-turn answer for generation", () => {
     const store = useChatStore();
-    const pending = deferred<{ session_id: string; state: "processing"; reply_text: string }>();
-    const cancel = vi.fn();
-
-    vi.mocked(replyChatCancelable).mockReturnValue({
-      promise: pending.promise as Promise<any>,
-      cancel,
-    });
-
     store.sessionId = "session-a";
     store.step = 0;
 
-    const submitPromise = store.submitAnswer("第一轮");
-    store.resetSession();
-    pending.resolve({
-      session_id: "session-a",
-      state: "processing",
-      reply_text: "旧的第二问",
-    });
-    await submitPromise;
+    store.queuePendingAnswer("唯一回答");
 
-    expect(cancel).toHaveBeenCalledTimes(1);
-    expect(store.step).toBe(0);
-    expect(store.q2).toBe("");
+    expect(store.step).toBe(1);
+    expect(store.answer1).toBe("唯一回答");
+    expect(store.pendingAnswer).toBe("唯一回答");
   });
 
   it("drops stale stream events after a reset", async () => {
@@ -80,9 +65,9 @@ describe("chat store request isolation", () => {
 
     store.sessionId = "session-b";
     store.step = 1;
-    store.pendingFinalAnswer = "第二轮";
+    store.pendingAnswer = "唯一回答";
 
-    const streamPromise = store.streamPendingFinalAnswer();
+    const streamPromise = store.streamPendingAnswer();
     store.resetSession();
 
     onEvent?.({

@@ -4,7 +4,6 @@ export interface ChatDraft {
   sessionId: string;
   step: number;
   answer1: string;
-  answer2: string;
 }
 
 export function getChatDraft(): ChatDraft | null {

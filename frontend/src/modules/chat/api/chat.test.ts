@@ -92,7 +92,6 @@ describe("chat api cancellation", () => {
       return new Response(
         JSON.stringify({
           session_id: "session-3",
-          question_index: 1,
           text: "转写成功",
           duration: 1.2,
           is_final: true,
@@ -110,7 +109,6 @@ describe("chat api cancellation", () => {
 
     const payload = new FormData();
     payload.append("session_id", "session-3");
-    payload.append("question_index", "1");
     payload.append("file", new Blob(["audio-bytes"], { type: "audio/webm" }), "voice.webm");
 
     const result = await transcribeVoiceCancelable(payload).promise;

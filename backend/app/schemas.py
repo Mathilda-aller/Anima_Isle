@@ -85,7 +85,6 @@ class ChatReplyRequest(BaseModel):
 
 class ChatVoiceTranscribeResponse(BaseModel):
     session_id: str
-    question_index: int
     text: str
     duration: float
     is_final: bool = True
@@ -116,7 +115,7 @@ class ChatTicketDataDTO(BaseModel):
 # 3. 聊天过程中的响应
 class ChatStepResponse(BaseModel):
     session_id: str
-    state: str # 'processing' | 'finished'
+    state: str # 'finished' | 'risk_blocked'
     reply_text: str # 精灵说的话 (Q2 或 最终共鸣)
     
     # 如果 finished，下面会有值
