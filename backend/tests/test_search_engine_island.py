@@ -68,3 +68,28 @@ def test_search_island_candidates_static_oss_fallback(monkeypatch):
     assert len(result) == 3
     assert all(item["is_fallback"] is True for item in result)
     assert all(item["image_url"].startswith("https://oss.example.com/") for item in result)
+
+
+def test_get_client_retries_after_failure(monkeypatch):
+    attempts = {"count": 0}
+
+    class _RecoveredClient:
+        pass
+
+    def _factory(*args, **kwargs):
+        attempts["count"] += 1
+        if attempts["count"] == 1:
+            raise RuntimeError("temporary failure")
+        return _RecoveredClient()
+
+    monkeypatch.setattr(search_engine, "client", None)
+    monkeypatch.setattr(search_engine, "client_init_attempted", False)
+    monkeypatch.setattr(search_engine, "ZILLIZ_URI", "https://example.zilliz.com")
+    monkeypatch.setattr(search_engine, "ZILLIZ_TOKEN", "token")
+    monkeypatch.setattr(search_engine, "MilvusClient", _factory)
+
+    assert search_engine._get_client() is None
+
+    recovered = search_engine._get_client()
+    assert isinstance(recovered, _RecoveredClient)
+    assert attempts["count"] == 2

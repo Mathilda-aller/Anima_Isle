@@ -28,20 +28,17 @@ def _get_client() -> Optional[MilvusClient]:
     if client is not None:
         return client
 
-    if client_init_attempted:
-        return None
-
-    client_init_attempted = True
-
     if not ZILLIZ_URI or not ZILLIZ_TOKEN:
         logger.critical("❌ Missing Zilliz configuration in .env")
         return None
 
     try:
         client = MilvusClient(uri=ZILLIZ_URI, token=ZILLIZ_TOKEN)
+        client_init_attempted = True
         logger.info("✅ Connected to Zilliz Cloud")
         return client
     except Exception as e:
+        client_init_attempted = False
         logger.critical(f"❌ Failed to connect to Zilliz: {str(e)}")
         return None
 
