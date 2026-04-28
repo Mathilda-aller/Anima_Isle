@@ -333,12 +333,15 @@ function keepPrivate() {
   position: relative;
   width: 100%;
   height: 100%;
+  overflow: hidden;
+  border-radius: 42rpx;
   box-shadow: 8rpx 8rpx 48rpx rgba(0, 0, 0, 0.25);
 }
 
 .ticket-detail-page__image {
   width: 100%;
   height: 100%;
+  border-radius: inherit;
 }
 
 .ticket-detail-page__poem {
