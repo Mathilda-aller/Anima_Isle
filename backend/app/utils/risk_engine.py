@@ -192,19 +192,17 @@ async def check_text_risk(text: str, *, trace_id: Optional[str] = None) -> RiskC
     try:
         model_result = await _model_check(text, trace_id, stage="risk_model_primary", hit_type="model")
     except RiskEngineError as exc:
-        if rule_result.level == "REVIEW":
-            _log(
-                logging.WARNING,
-                "risk.result",
-                trace_id=trace_id,
-                level=rule_result.level,
-                hit_type=rule_result.hit_type,
-                reason_code=rule_result.reason_code,
-                should_block=rule_result.should_block,
-                fallback_reason=exc.code,
-            )
-            return rule_result
-        raise
+        _log(
+            logging.WARNING,
+            "risk.result",
+            trace_id=trace_id,
+            level=rule_result.level,
+            hit_type=rule_result.hit_type,
+            reason_code=rule_result.reason_code,
+            should_block=rule_result.should_block,
+            fallback_reason=exc.code,
+        )
+        return rule_result
 
     if rule_result.level == "REVIEW" and model_result.level == "SAFE":
         result = RiskCheckResult(level="REVIEW", hit_type="fallback_llm", reason_code=rule_result.reason_code, should_block=False)
