@@ -2,6 +2,7 @@ import chatVoiceTyping from "./icons/chat-voice-typing.svg";
 import chatVoiceRippleInner from "./icons/chat-voice-ripple-inner.svg";
 import chatVoiceRippleOuter from "./icons/chat-voice-ripple-outer.svg";
 import chatVoiceEndButton from "./icons/chat-voice-end-button.svg";
+import chatVoiceReviewButton from "./icons/chat-voice-review-button.svg";
 import chatVoicePurpleCircle from "./icons/chat-voice-purple-circle.svg";
 import chatVoiceWhiteCircle from "./icons/chat-voice-white-circle.svg";
 import chatInputUnderline from "./icons/chat-input-underline.svg";
@@ -30,6 +31,7 @@ export const CHAT_ASSETS = {
     voiceHalo: chatVoiceWhiteCircle,
     voicePurpleCircle: chatVoicePurpleCircle,
     voiceEndChat: chatVoiceEndButton,
+    voiceReview: chatVoiceReviewButton,
     voiceRippleInner: chatVoiceRippleInner,
     voiceRippleOuter: chatVoiceRippleOuter,
     voiceTyping: chatVoiceTyping,

@@ -17,6 +17,7 @@ const props = withDefaults(
     confirmDisabled?: boolean;
     cancelLabel?: string;
     confirmLabel?: string;
+    reviewing?: boolean;
     showWriteEntry?: boolean;
     rippleIntensity?: number;
   }>(),
@@ -32,6 +33,7 @@ const props = withDefaults(
     confirmDisabled: false,
     cancelLabel: "取消",
     confirmLabel: "完成",
+    reviewing: false,
     showWriteEntry: true,
     rippleIntensity: 0,
   },
@@ -110,7 +112,11 @@ const rippleStyle = computed(() => {
         :src="CHAT_ASSETS.icons.voiceRippleInner"
         mode="aspectFit"
       />
-      <VoiceEndChatButton class="cabin-voice-control-block__stop-button" @click="emit('toggle')" />
+      <VoiceEndChatButton
+        class="cabin-voice-control-block__stop-button"
+        :variant="reviewing ? 'review' : 'stop'"
+        @click="emit('toggle')"
+      />
     </view>
 
     <view v-if="showMeta" class="cabin-voice-control-block__status">

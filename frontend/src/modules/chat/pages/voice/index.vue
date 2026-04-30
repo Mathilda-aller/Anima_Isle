@@ -631,6 +631,7 @@ function stopSpeechRecognition() {
         :show-actions="showReviewActions"
         :show-primary-controls="showPrimaryControls"
         :show-write-entry="showWriteEntry"
+        :reviewing="voiceUiState === 'review'"
         :status-text="controlStatusText"
         :duration-text="durationText"
         cancel-label="重录"

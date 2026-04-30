@@ -1,0 +1,16 @@
+<svg width="75" height="75" viewBox="0 0 75 75" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="37.5" cy="37.5" r="37.5" fill="url(#button_fill)"/>
+  <circle cx="37.5" cy="37.5" r="29" fill="url(#button_core)"/>
+  <path d="M30 25.8L51 37.5L30 49.2V25.8Z" fill="#EEF4FC" fill-opacity="0.86"/>
+  <defs>
+    <radialGradient id="button_fill" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(37.5 37.5) rotate(90) scale(37.5)">
+      <stop stop-color="#DEE9FF" stop-opacity="0.32"/>
+      <stop offset="0.7" stop-color="#D3DFFF" stop-opacity="0.14"/>
+      <stop offset="1" stop-color="#CDD8FF" stop-opacity="0.04"/>
+    </radialGradient>
+    <radialGradient id="button_core" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(37.5 37.5) rotate(90) scale(29)">
+      <stop stop-color="#F4F8FF" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#EDF4FF" stop-opacity="0.08"/>
+    </radialGradient>
+  </defs>
+</svg>
