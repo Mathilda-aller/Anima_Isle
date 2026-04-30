@@ -30,7 +30,7 @@ export const useSquareStore = defineStore("square", {
         [ticketUid]: normalized,
       };
       this.suggestedTags = normalized;
-      this.selectedTags = normalized.slice(0, 1);
+      this.selectedTags = [];
       return normalized;
     },
 
@@ -38,7 +38,7 @@ export const useSquareStore = defineStore("square", {
       const cachedTags = this.suggestedTagsByTicket[ticketUid];
       if (!options.force && cachedTags?.length) {
         this.suggestedTags = cachedTags;
-        this.selectedTags = cachedTags.slice(0, 1);
+        this.selectedTags = [];
         return cachedTags;
       }
 
@@ -61,7 +61,7 @@ export const useSquareStore = defineStore("square", {
     },
 
     async publish(ticketUid: string) {
-      const tags = this.selectedTags.length ? this.selectedTags : ["#心情"];
+      const tags = this.selectedTags;
       const result = await publishTicket({
         ticket_uid: ticketUid,
         selected_tags: tags,

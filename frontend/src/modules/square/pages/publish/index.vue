@@ -155,6 +155,10 @@ async function regenerateTags() {
 
 async function doPublish() {
   if (!ticketUid.value || loading.value) return;
+  if (!squareStore.selectedTags.length) {
+    uni.showToast({ title: "请至少选择一个tag", icon: "none" });
+    return;
+  }
 
   loading.value = true;
   try {
