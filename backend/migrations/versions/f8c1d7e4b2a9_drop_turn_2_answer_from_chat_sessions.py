@@ -1,7 +1,7 @@
 """drop_turn_2_answer_from_chat_sessions
 
 Revision ID: f8c1d7e4b2a9
-Revises: d3f0b9d5d6a1
+Revises: e4b7c2d1a9f0
 Create Date: 2026-04-28 17:20:00.000000
 """
 
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 revision: str = "f8c1d7e4b2a9"
-down_revision: Union[str, Sequence[str], None] = "d3f0b9d5d6a1"
+down_revision: Union[str, Sequence[str], None] = "e4b7c2d1a9f0"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
