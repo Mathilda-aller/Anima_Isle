@@ -32,7 +32,7 @@ const estimatedLineCount = computed(() => {
   }, 0);
 });
 
-const showPrompt = computed(() => cabinUiState.value === "prompt");
+const showPrompt = computed(() => true);
 const showVoiceIcon = computed(() => cabinUiState.value !== "typing");
 const interactionTop = computed(() => {
   if (cabinUiState.value === "prompt") return "57.21%";
