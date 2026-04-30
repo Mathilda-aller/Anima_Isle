@@ -132,6 +132,12 @@ async function loadIslandTags() {
 }
 
 function goBack() {
+  if (entry.value === "publish") {
+    uni.switchTab?.({ url: ROUTES.CHAT_HOME });
+    uni.reLaunch({ url: ROUTES.CHAT_HOME });
+    return;
+  }
+
   const pages = getCurrentPages();
   if (pages.length > 1) {
     uni.navigateBack();
