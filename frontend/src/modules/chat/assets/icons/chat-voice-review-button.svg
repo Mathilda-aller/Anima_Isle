@@ -1,7 +1,7 @@
 <svg width="75" height="75" viewBox="0 0 75 75" fill="none" xmlns="http://www.w3.org/2000/svg">
   <circle cx="37.5" cy="37.5" r="37.5" fill="url(#button_fill)"/>
   <circle cx="37.5" cy="37.5" r="29" fill="url(#button_core)"/>
-  <path d="M30 25.8L51 37.5L30 49.2V25.8Z" fill="#EEF4FC" fill-opacity="0.86"/>
+  <path d="M31.2 26.8C31.2 25.4 32.7 24.5 33.9 25.2L50.2 34.4C52.5 35.7 52.5 39.3 50.2 40.6L33.9 49.8C32.7 50.5 31.2 49.6 31.2 48.2V26.8Z" fill="#EEF4FC" fill-opacity="0.86"/>
   <defs>
     <radialGradient id="button_fill" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(37.5 37.5) rotate(90) scale(37.5)">
       <stop stop-color="#DEE9FF" stop-opacity="0.32"/>
