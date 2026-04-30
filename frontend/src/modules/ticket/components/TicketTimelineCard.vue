@@ -2,6 +2,7 @@
 import { computed } from "vue";
 import { TICKET_ASSETS } from "@/modules/ticket/assets";
 import type { TicketDTO } from "@/modules/ticket/types/ticket";
+import { formatTicketMonthDay } from "@/modules/ticket/utils/ticketDate";
 
 const props = withDefaults(
   defineProps<{
@@ -28,11 +29,7 @@ const poemLines = computed(() =>
 );
 
 const monthDayLabel = computed(() => {
-  const date = new Date(props.item.created_at);
-  if (Number.isNaN(date.getTime())) return "";
-
-  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  return `${monthNames[date.getMonth()]} ${date.getDate()}`;
+  return formatTicketMonthDay(props.item.created_at, "");
 });
 </script>
 

@@ -10,6 +10,12 @@ import { ROUTES } from "@/shared/constants/routes";
 import StageViewportShell from "@/shared/components/StageViewportShell.vue";
 import { toLogin } from "@/shared/utils/navigation";
 import { logEvent } from "@/infrastructure/http/tracking";
+import {
+  formatTicketMetaTime,
+  formatTicketMonthDay,
+  formatTicketSeasonLabel,
+  formatTicketWeekday,
+} from "@/modules/ticket/utils/ticketDate";
 
 const authStore = useAuthStore();
 const ticketStore = useTicketStore();
@@ -39,56 +45,19 @@ const diaryText = computed(() => {
 });
 
 const createdAtLabel = computed(() => {
-  const createdAt = ticketDetail.value?.created_at;
-  if (!createdAt) return "";
-
-  const date = new Date(createdAt);
-  if (Number.isNaN(date.getTime())) return "";
-  const chineseDigits = ["零", "一", "二", "三", "四", "五", "六", "七", "八", "九"];
-  const yearText = String(date.getFullYear())
-    .split("")
-    .map((digit) => chineseDigits[Number(digit)] ?? digit)
-    .join("");
-
-  const month = date.getMonth() + 1;
-  const season =
-    month >= 3 && month <= 5
-      ? "春"
-      : month >= 6 && month <= 8
-        ? "夏"
-        : month >= 9 && month <= 11
-          ? "秋"
-          : "冬";
-
-  return `${yearText}年·${season}`;
+  return formatTicketSeasonLabel(ticketDetail.value?.created_at);
 });
 
 const diaryMonthDay = computed(() => {
-  const createdAt = ticketDetail.value?.created_at;
-  if (!createdAt) return "May 23";
-
-  const date = new Date(createdAt);
-  if (Number.isNaN(date.getTime())) return "May 23";
-  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  return `${monthNames[date.getMonth()]} ${date.getDate()}`;
+  return formatTicketMonthDay(ticketDetail.value?.created_at);
 });
 
 const diaryWeekday = computed(() => {
-  const createdAt = ticketDetail.value?.created_at;
-  if (!createdAt) return "THURSDAY";
-  const date = new Date(createdAt);
-  if (Number.isNaN(date.getTime())) return "THURSDAY";
-  return date.toLocaleDateString("en-US", { weekday: "long" }).toUpperCase();
+  return formatTicketWeekday(ticketDetail.value?.created_at);
 });
 
 const diaryMetaTime = computed(() => {
-  const createdAt = ticketDetail.value?.created_at;
-  if (!createdAt) return "言屿记录";
-  const date = new Date(createdAt);
-  if (Number.isNaN(date.getTime())) return "言屿记录";
-  const hours = String(date.getHours()).padStart(2, "0");
-  const minutes = String(date.getMinutes()).padStart(2, "0");
-  return `${hours}:${minutes} 言屿`;
+  return formatTicketMetaTime(ticketDetail.value?.created_at);
 });
 
 onLoad(async (query) => {
@@ -174,7 +143,9 @@ function toggleCard() {
           <view class="ticket-viewer__back-card">
             <text class="ticket-viewer__weekday">{{ diaryWeekday }}</text>
             <text class="ticket-viewer__month-day">{{ diaryMonthDay }}</text>
-            <text class="ticket-viewer__diary-body">{{ diaryText }}</text>
+            <scroll-view class="ticket-viewer__diary-scroll" scroll-y @click.stop>
+              <text class="ticket-viewer__diary-body">{{ diaryText }}</text>
+            </scroll-view>
             <image class="ticket-viewer__divider" :src="TICKET_ASSETS.icons.diaryDivider" mode="scaleToFill" />
             <view class="ticket-viewer__meta">
               <view class="ticket-viewer__meta-tag">
@@ -277,6 +248,7 @@ function toggleCard() {
   top: 0;
   left: 0;
   width: 100%;
+  box-sizing: border-box;
   padding: calc(44rpx + env(safe-area-inset-top)) 32rpx 0;
   display: flex;
   align-items: center;
@@ -333,7 +305,11 @@ function toggleCard() {
   left: 9.7%;
   top: 14.76%;
   width: 80.6%;
-  min-height: 52.63%;
+  height: 52.63%;
+  box-sizing: border-box;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
   padding: 66rpx 38rpx 40rpx;
   border-radius: 42rpx;
   background:
@@ -363,8 +339,13 @@ function toggleCard() {
   letter-spacing: 1rpx;
 }
 
-.ticket-viewer__diary-body {
+.ticket-viewer__diary-scroll {
   margin-top: 74rpx;
+  flex: 1;
+  min-height: 0;
+}
+
+.ticket-viewer__diary-body {
   display: block;
   color: rgba(255, 255, 255, 0.86);
   font-family: $anima-font-display;
@@ -372,6 +353,7 @@ function toggleCard() {
   line-height: 56rpx;
   letter-spacing: 1rpx;
   white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .ticket-viewer__divider {
@@ -386,6 +368,7 @@ function toggleCard() {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 16rpx;
 }
 
 .ticket-viewer__meta-tag {
@@ -421,6 +404,10 @@ function toggleCard() {
   font-size: 24rpx;
   line-height: 35rpx;
   letter-spacing: 1rpx;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .ticket-viewer__state {

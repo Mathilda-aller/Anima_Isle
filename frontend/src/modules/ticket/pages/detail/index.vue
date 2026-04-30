@@ -11,6 +11,7 @@ import { SHARED_ASSETS } from "@/shared/assets";
 import StageViewportShell from "@/shared/components/StageViewportShell.vue";
 import { logEvent } from "@/infrastructure/http/tracking";
 import { getErrorMessage } from "@/shared/utils/error";
+import { formatTicketSeasonLabel } from "@/modules/ticket/utils/ticketDate";
 
 const authStore = useAuthStore();
 const ticketStore = useTicketStore();
@@ -34,29 +35,7 @@ const poemLines = computed(() => {
 });
 
 const createdAtLabel = computed(() => {
-  const createdAt = ticketDetail.value?.created_at;
-  if (!createdAt) return "";
-
-  const date = new Date(createdAt);
-  if (Number.isNaN(date.getTime())) return "";
-
-  const chineseDigits = ["零", "一", "二", "三", "四", "五", "六", "七", "八", "九"];
-  const yearText = String(date.getFullYear())
-    .split("")
-    .map((digit) => chineseDigits[Number(digit)] ?? digit)
-    .join("");
-
-  const month = date.getMonth() + 1;
-  const season =
-    month >= 3 && month <= 5
-      ? "春"
-      : month >= 6 && month <= 8
-        ? "夏"
-        : month >= 9 && month <= 11
-          ? "秋"
-          : "冬";
-
-  return `${yearText}年·${season}`;
+  return formatTicketSeasonLabel(ticketDetail.value?.created_at);
 });
 
 function normalizeError(error: unknown): string {
