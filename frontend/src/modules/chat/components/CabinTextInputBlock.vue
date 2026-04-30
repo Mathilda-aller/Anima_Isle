@@ -75,6 +75,7 @@ function onInput(event: unknown) {
         placeholder-class="cabin-text-input-block__placeholder"
         :disabled="inputDisabled"
         :focus="focusInput"
+        :adjust-position="false"
         confirm-type="done"
         @input="onInput"
         @change="onInput"

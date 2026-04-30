@@ -34,13 +34,9 @@ const estimatedLineCount = computed(() => {
 
 const showPrompt = computed(() => true);
 const showVoiceIcon = computed(() => cabinUiState.value !== "typing");
-const interactionTop = computed(() => {
-  if (cabinUiState.value === "prompt") return "57.21%";
-  if (cabinUiState.value === "focus") return "48.05%";
-  return "47.94%";
-});
-const interactionLeft = computed(() => (cabinUiState.value === "typing" ? "10.45%" : "13.18%"));
+const interactionTop = computed(() => "57.21%");
 const interactionWidth = computed(() => "78.36%");
+const interactionLeft = computed(() => `${(100 - Number.parseFloat(interactionWidth.value)) / 2}%`);
 const clampedLineCount = computed(() => Math.min(Math.max(estimatedLineCount.value, 1), 4));
 const textareaHeight = computed(() => `${clampedLineCount.value * 56 + 14}rpx`);
 const inputMinHeight = computed(() => textareaHeight.value);
