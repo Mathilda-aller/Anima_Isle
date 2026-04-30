@@ -26,6 +26,12 @@ function waitForDelay(delay: number) {
 }
 
 describe("generatingFlow", () => {
+  it("uses the tuned comfort delay defaults", () => {
+    expect(COMFORT_STAGE_SHORT_DELAY_MS).toBe(2500);
+    expect(COMFORT_STAGE_MEDIUM_DELAY_MS).toBe(3500);
+    expect(COMFORT_STAGE_LONG_DELAY_MS).toBe(4500);
+  });
+
   it("maps comfort copy length to the expected minimum delay", () => {
     expect(getComfortStageDelayMs("短句")).toBe(COMFORT_STAGE_SHORT_DELAY_MS);
     expect(getComfortStageDelayMs("a".repeat(60))).toBe(COMFORT_STAGE_MEDIUM_DELAY_MS);
