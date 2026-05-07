@@ -64,7 +64,7 @@ def _load_prompts_from_json() -> Dict[str, str]:
 PROMPTS = _load_prompts_from_json()
 
 ROUTE_INTENSITY_RULES: Dict[str, tuple[str, ...]] = {
-    "THUNDER": ("HIGH", "MODERATE", "LOW"),
+    "THUNDER": ("HIGH", "LOW"),
     "MIST": ("HIGH", "LOW"),
     "CLOUD": ("HIGH", "LOW"),
     "RAIN": ("HIGH", "MODERATE", "LOW"),
