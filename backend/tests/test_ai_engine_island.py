@@ -19,6 +19,11 @@ def test_normalize_route_result_uses_default_island():
     assert DEFAULT_ISLAND_KEY in ISLAND_KEYS
 
 
+def test_normalize_route_result_allows_thunder_moderate():
+    result = ai_engine._normalize_route_result({"Island": "THUNDER", "Intensity": "MODERATE"})
+    assert result == {"Island": "THUNDER", "Intensity": "MODERATE"}
+
+
 def test_stream_empathy_text_yields_safe_fallback_on_connection_error(monkeypatch):
     async def _raise(*args, **kwargs):
         raise APIConnectionError(request=httpx.Request("POST", "https://example.com"))

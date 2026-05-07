@@ -64,7 +64,7 @@ def _load_prompts_from_json() -> Dict[str, str]:
 PROMPTS = _load_prompts_from_json()
 
 ROUTE_INTENSITY_RULES: Dict[str, tuple[str, ...]] = {
-    "THUNDER": ("HIGH", "LOW"),
+    "THUNDER": ("HIGH", "MODERATE", "LOW"),
     "MIST": ("HIGH", "LOW"),
     "CLOUD": ("HIGH", "LOW"),
     "RAIN": ("HIGH", "MODERATE", "LOW"),
@@ -181,6 +181,13 @@ def _normalize_poem_lines(content: str) -> str:
     return _safe_fallback_poem()
 
 
+def _render_prompt(prompt: str, **values: str) -> str:
+    rendered = prompt
+    for key, value in values.items():
+        rendered = rendered.replace(f"{{{{{key}}}}}", value)
+    return rendered
+
+
 async def _create_chat_completion(
     *,
     stage: str,
@@ -278,7 +285,7 @@ async def classify_emotion_route(text: str, *, trace_id: Optional[str] = None) -
             timeout_seconds=ROUTER_TIMEOUT_SECONDS,
             model=MODEL_NAME,
             messages=[
-                {"role": "system", "content": PROMPTS["emotion_route"]},
+                {"role": "system", "content": _render_prompt(PROMPTS["emotion_route"], user_input=text[:2000])},
                 {"role": "user", "content": f"用户当前的倾诉内容：{text[:2000]}"},
             ],
             response_format={"type": "json_object"},
@@ -309,7 +316,14 @@ async def generate_three_line_poem(user_input: str, image_description: str, *, t
             timeout_seconds=POEM_TIMEOUT_SECONDS,
             model=MODEL_NAME,
             messages=[
-                {"role": "system", "content": PROMPTS["three_line_poem"]},
+                {
+                    "role": "system",
+                    "content": _render_prompt(
+                        PROMPTS["three_line_poem"],
+                        user_input=user_input[:2000],
+                        image_description=image_description[:200],
+                    ),
+                },
                 {"role": "user", "content": f"用户心境：{user_input[:2000]}\n图片白描：{image_description[:200]}"},
             ],
             temperature=0.9,
