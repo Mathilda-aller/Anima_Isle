@@ -660,56 +660,53 @@ async def _build_sync_final_response(
         return schemas.ChatStepResponse(session_id=session.session_id, state="risk_blocked", reply_text=risk_reply_text)
 
     empathy_started = _stage_start(trace_id, session.session_id, current_user.id, "empathy_text")
-    empathy_task = asyncio.create_task(ai_engine.generate_empathy_text(full_context, trace_id=trace_id))
-
     try:
-        reply_text = await empathy_task
+        reply_chunks: List[str] = []
+        async for delta in ai_engine.stream_empathy_text(full_context, trace_id=trace_id):
+            reply_chunks.append(delta)
+        reply_text = "".join(reply_chunks).strip() or ai_engine._safe_fallback_reply()
         _stage_end(trace_id, session.session_id, current_user.id, breakdown, "empathy_text", empathy_started, reply_len=len(reply_text))
-        ticket_data = await _generate_ticket_bundle(
-            db=db,
-            session=session,
-            current_user=current_user,
-            full_context=full_context,
-            trace_id=trace_id,
-            breakdown=breakdown,
-            reply_text=reply_text,
-        )
-        _log_chat_event(
-            logging.INFO,
-            "chat.reply.request.end",
-            trace_id=trace_id,
-            session_id=session.session_id,
-            user_id=current_user.id,
-            state="finished",
-            elapsed_ms=int((time.perf_counter() - request_started) * 1000),
-            breakdown=breakdown,
-            mode="compat_sync",
-        )
-        return schemas.ChatStepResponse(
-            session_id=session.session_id,
-            state="finished",
-            reply_text=reply_text,
-            ticket_data=ticket_data,
-        )
     except Exception as exc:
-        if empathy_task.done():
-            try:
-                empathy_task.result()
-            except Exception as empathy_exc:
-                _stage_end(
-                    trace_id,
-                    session.session_id,
-                    current_user.id,
-                    breakdown,
-                    "empathy_text",
-                    empathy_started,
-                    success=False,
-                    error_code=_map_generation_error(empathy_exc),
-                    error_type=type(empathy_exc).__name__,
-                    error_message=str(empathy_exc),
-                )
-                exc = empathy_exc
-        raise exc
+        _stage_end(
+            trace_id,
+            session.session_id,
+            current_user.id,
+            breakdown,
+            "empathy_text",
+            empathy_started,
+            success=False,
+            error_code=_map_generation_error(exc),
+            error_type=type(exc).__name__,
+            error_message=str(exc),
+        )
+        raise
+
+    ticket_data = await _generate_ticket_bundle(
+        db=db,
+        session=session,
+        current_user=current_user,
+        full_context=full_context,
+        trace_id=trace_id,
+        breakdown=breakdown,
+        reply_text=reply_text,
+    )
+    _log_chat_event(
+        logging.INFO,
+        "chat.reply.request.end",
+        trace_id=trace_id,
+        session_id=session.session_id,
+        user_id=current_user.id,
+        state="finished",
+        elapsed_ms=int((time.perf_counter() - request_started) * 1000),
+        breakdown=breakdown,
+        mode="compat_sync",
+    )
+    return schemas.ChatStepResponse(
+        session_id=session.session_id,
+        state="finished",
+        reply_text=reply_text,
+        ticket_data=ticket_data,
+    )
 
 
 async def _stream_final_reply_events(

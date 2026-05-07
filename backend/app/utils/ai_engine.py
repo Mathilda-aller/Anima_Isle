@@ -34,6 +34,35 @@ if not API_KEY or not BASE_URL:
 
 client = AsyncOpenAI(api_key=API_KEY, base_url=BASE_URL)
 
+REQUIRED_PROMPT_KEYS = ("empathy_text", "emotion_route", "three_line_poem", "suggested_tags")
+
+
+def _load_prompts_from_json() -> Dict[str, str]:
+    backend_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    json_path = os.path.join(backend_dir, "data", "ai_prompts.json")
+
+    try:
+        with open(json_path, "r", encoding="utf-8") as f:
+            raw_prompts = json.load(f)
+    except Exception as exc:
+        logger.critical("Failed to load AI prompts from %s: %s", json_path, exc)
+        raise ValueError("Failed to load AI prompts") from exc
+
+    if not isinstance(raw_prompts, dict):
+        raise ValueError("AI prompts config must be a JSON object")
+
+    prompts: Dict[str, str] = {}
+    for key in REQUIRED_PROMPT_KEYS:
+        value = raw_prompts.get(key)
+        if not isinstance(value, list) or not all(isinstance(line, str) for line in value):
+            raise ValueError(f"AI prompt '{key}' must be a list of strings")
+        prompts[key] = "\n".join(value)
+
+    return prompts
+
+
+PROMPTS = _load_prompts_from_json()
+
 ROUTE_INTENSITY_RULES: Dict[str, tuple[str, ...]] = {
     "THUNDER": ("HIGH", "LOW"),
     "MIST": ("HIGH", "LOW"),
@@ -43,60 +72,6 @@ ROUTE_INTENSITY_RULES: Dict[str, tuple[str, ...]] = {
     "WIND": ("HIGH", "MODERATE", "LOW"),
     "LIGHT": ("HIGH", "MODERATE", "LOW"),
 }
-
-EMPATHY_ONLY_SYSTEM_PROMPT = """你是“言屿（AnimaIsle）”的首席情绪陪伴师。
-
-请根据用户当前的倾诉，写一段 100 - 150 字的单段共情文字。
-要求：
-1. 贴近 Z 世代，温和、克制，有一点散文感。
-2. 先接收情绪，再接住情绪，再转化成岛屿天气意象，最后温柔收尾。
-3. 绝对禁止说教，绝对不要给现实建议。
-4. 只输出正文，不要标题，不要解释，不要 [SAFE] 或 [DANGER]。
-"""
-
-ROUTER_SYSTEM_PROMPT = """# Role
-你是一位服务于“言屿（AnimaIsle）”后端的“极简情绪路由中枢”。你的唯一任务是：深度理解用户的原始倾诉，判断其核心情绪归属，并将其精准分拣到对应的海岛坐标与强度等级中。
-
-# Workflow & Constraints
-1. 纯粹分类，禁止修改：你不需要提炼、压缩或重写用户的话。
-2. 理解潜台词：用户可能不会直接说“我很难过”或“我很焦虑”，你需要通过他们描述的事件来精准推断底层情绪。
-3. 输出格式绝对纯净：必须且只能输出合法的 JSON 字符串。
-
-# 判定规则库：岛屿 (Island) 与 强度 (Intensity)
-1. THUNDER：愤怒/冒犯/吵架/欺骗/背叛/黑幕/霸凌/边界侵犯/崩盘/恨铁不成钢等
-   - 可选强度：HIGH / LOW
-2. MIST：迷茫空虚/失去方向/焦虑/价值缺失/纠结/真空期/倦怠/存在主义危机等
-   - 可选强度：HIGH / LOW
-3. CLOUD：复杂混杂情绪/百感交集/麻木/宕机/脑子乱等
-   - 可选强度：HIGH / LOW
-4. RAIN：悲伤/孤独/失恋/离别/委屈/挫败/想家/向内坍塌等
-   - 可选强度：HIGH / MODERATE / LOW
-5. SNOW：学业压力/内卷/疲惫/DDL/透支/催婚等
-   - 可选强度：HIGH / MODERATE / LOW
-6. WIND：社交焦虑/敏感/内耗/怕评价/边缘化/讨好型等
-   - 可选强度：HIGH / MODERATE / LOW
-7. LIGHT：惬意/满足感/温暖/喜悦/松弛感/释怀等
-   - 可选强度：HIGH / MODERATE / LOW
-
-# Output Format
-{
-  "Island": "对应英文岛屿大写",
-  "Intensity": "HIGH / MODERATE / LOW"
-}
-"""
-
-POEM_SYSTEM_PROMPT = """# Role
-你是“言屿（AnimaIsle）”的首席驻岛诗人。你擅长运用现代文学中的“陌生化（Defamiliarization）”手法，将粗糙的生活现实提纯为意境绵长的现代三行诗。
-
-# Task
-根据用户心境和图片白描，创作一首完整、连贯的三行诗。
-
-# 结构与约束
-1. 第一行：从图片白描提取物理意象，诗意化重写，8-15 字。
-2. 第二行：把用户核心情绪或事件具象化，和第一行产生联动，10-18 字。
-3. 第三行：温柔托底与留白，8-15 字。
-4. 只输出三行诗本身，不要任何解释。
-"""
 
 
 class AIEngineError(Exception):
@@ -261,34 +236,6 @@ async def get_embedding(text: str, *, trace_id: Optional[str] = None) -> List[fl
         raise AIEngineError("embedding_failed", "embedding", "embedding failed", cause=exc) from exc
 
 
-@retry(stop=stop_after_attempt(2), before_sleep=_retry_before_sleep, reraise=True)
-async def generate_empathy_text(text: str, *, trace_id: Optional[str] = None) -> str:
-    try:
-        response = await _create_chat_completion(
-            stage="empathy_text",
-            trace_id=trace_id,
-            text=text,
-            timeout_seconds=EMPATHY_TIMEOUT_SECONDS,
-            model=MODEL_NAME,
-            messages=[
-                {"role": "system", "content": EMPATHY_ONLY_SYSTEM_PROMPT},
-                {"role": "user", "content": f"用户当前的倾诉内容：{text[:2000]}"},
-            ],
-            temperature=0.7,
-            max_tokens=220,
-        )
-        content = _extract_text_content(response.choices[0].message.content)
-        if not content:
-            _log_ai_event(logging.WARNING, "empathy.fallback_reply", trace_id=trace_id, stage="empathy_text", reason="empty_reply", **_text_meta(text))
-            return _safe_fallback_reply()
-        return content
-    except AIEngineError:
-        raise
-    except Exception as exc:
-        _log_ai_event(logging.ERROR, "empathy.failed", trace_id=trace_id, stage="empathy_text", error_type=type(exc).__name__, error_message=str(exc), **_text_meta(text))
-        raise AIEngineError("ai_unknown_failed", "empathy_text", "empathy text failed", cause=exc) from exc
-
-
 async def stream_empathy_text(text: str, *, trace_id: Optional[str] = None) -> AsyncIterator[str]:
     meta = _text_meta(text)
     started = time.perf_counter()
@@ -297,7 +244,7 @@ async def stream_empathy_text(text: str, *, trace_id: Optional[str] = None) -> A
         stream = await client.chat.completions.create(
             model=MODEL_NAME,
             messages=[
-                {"role": "system", "content": EMPATHY_ONLY_SYSTEM_PROMPT},
+                {"role": "system", "content": PROMPTS["empathy_text"]},
                 {"role": "user", "content": f"用户当前的倾诉内容：{text[:2000]}"},
             ],
             temperature=0.7,
@@ -331,7 +278,7 @@ async def classify_emotion_route(text: str, *, trace_id: Optional[str] = None) -
             timeout_seconds=ROUTER_TIMEOUT_SECONDS,
             model=MODEL_NAME,
             messages=[
-                {"role": "system", "content": ROUTER_SYSTEM_PROMPT},
+                {"role": "system", "content": PROMPTS["emotion_route"]},
                 {"role": "user", "content": f"用户当前的倾诉内容：{text[:2000]}"},
             ],
             response_format={"type": "json_object"},
@@ -362,7 +309,7 @@ async def generate_three_line_poem(user_input: str, image_description: str, *, t
             timeout_seconds=POEM_TIMEOUT_SECONDS,
             model=MODEL_NAME,
             messages=[
-                {"role": "system", "content": POEM_SYSTEM_PROMPT},
+                {"role": "system", "content": PROMPTS["three_line_poem"]},
                 {"role": "user", "content": f"用户心境：{user_input[:2000]}\n图片白描：{image_description[:200]}"},
             ],
             temperature=0.9,
@@ -378,10 +325,6 @@ async def generate_three_line_poem(user_input: str, image_description: str, *, t
 
 @retry(stop=stop_after_attempt(2), before_sleep=_retry_before_sleep, reraise=True)
 async def generate_suggested_tags(text: str, *, trace_id: Optional[str] = None) -> List[str]:
-    system_prompt = (
-        "你是一个情感分析助手。请阅读用户的心事，提取或生成 3 到 5 个最能代表其情绪、场景或意象的短标签。"
-        "要求：1. 每个标签以 # 开头。2. 标签简短。3. 只返回 JSON。"
-    )
     try:
         response = await _create_chat_completion(
             stage="suggested_tags",
@@ -390,7 +333,7 @@ async def generate_suggested_tags(text: str, *, trace_id: Optional[str] = None) 
             timeout_seconds=TAG_TIMEOUT_SECONDS,
             model=MODEL_NAME,
             messages=[
-                {"role": "system", "content": system_prompt},
+                {"role": "system", "content": PROMPTS["suggested_tags"]},
                 {"role": "user", "content": f"用户心事: {text[:500]}"},
             ],
             response_format={"type": "json_object"},
@@ -465,33 +408,3 @@ async def transcribe_audio(
     except Exception as exc:
         _log_ai_event(logging.ERROR, "asr.failed", trace_id=trace_id, stage="audio_transcription", elapsed_ms=int((time.perf_counter() - started) * 1000), error_type=type(exc).__name__, error_message=str(exc))
         raise AIEngineError("audio_transcription_failed", "audio_transcription", "audio transcription failed", cause=exc) from exc
-
-
-# Compatibility wrappers for older call sites and tests.
-async def generate_empathy_reply(text: str, *, trace_id: Optional[str] = None) -> Dict[str, str]:
-    return {"safety": "SAFE", "reply": await generate_empathy_text(text, trace_id=trace_id)}
-
-
-async def check_risk(text: str, *, trace_id: Optional[str] = None) -> bool:
-    from app.utils import risk_engine
-
-    result = await risk_engine.check_text_risk(text, trace_id=trace_id)
-    return result.should_block
-
-
-async def analyze_island_tags_and_reply(
-    history_text: str,
-    ui_style: str = "Warm",
-    *,
-    trace_id: Optional[str] = None,
-) -> Dict[str, object]:
-    del ui_style
-    route_result = await classify_emotion_route(history_text, trace_id=trace_id)
-    empathy_text = await generate_empathy_text(history_text, trace_id=trace_id)
-    tags = _normalize_recommended_tags(await generate_suggested_tags(history_text, trace_id=trace_id))
-    return {
-        "reply": empathy_text or _safe_fallback_reply(),
-        "island_target": route_result["Island"],
-        "intensity": route_result["Intensity"],
-        "recommended_tags": tags,
-    }

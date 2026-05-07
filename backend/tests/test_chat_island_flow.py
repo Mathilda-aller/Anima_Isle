@@ -47,12 +47,9 @@ def _candidate(image_id: str, idx: int) -> dict:
     }
 
 
-def _patch_happy_path(monkeypatch, *, stream_chunks: list[str] | None = None, empathy_text: str = "我在听你说。") -> None:
+def _patch_happy_path(monkeypatch, *, stream_chunks: list[str] | None = None) -> None:
     async def _risk(*args, **kwargs):
         return _safe_result()
-
-    async def _empathy(*args, **kwargs):
-        return empathy_text
 
     async def _stream(*args, **kwargs):
         for chunk in stream_chunks or ["我在", "听你说。"]:
@@ -71,7 +68,6 @@ def _patch_happy_path(monkeypatch, *, stream_chunks: list[str] | None = None, em
         return [_candidate("img-1", 0), _candidate("img-2", 1), _candidate("img-3", 2)]
 
     monkeypatch.setattr(risk_engine, "check_text_risk", _risk)
-    monkeypatch.setattr(ai_engine, "generate_empathy_text", _empathy)
     monkeypatch.setattr(ai_engine, "stream_empathy_text", _stream)
     monkeypatch.setattr(ai_engine, "classify_emotion_route", _route)
     monkeypatch.setattr(ai_engine, "get_embedding", _embedding)
@@ -360,8 +356,8 @@ def test_chat_reply_cancels_sibling_task_when_route_fails(client, db_session, mo
     async def _risk(*args, **kwargs):
         return _safe_result()
 
-    async def _empathy(*args, **kwargs):
-        return "我在听你说。"
+    async def _stream(*args, **kwargs):
+        yield "我在听你说。"
 
     async def _route(*args, **kwargs):
         raise RuntimeError("route failed")
@@ -375,7 +371,7 @@ def test_chat_reply_cancels_sibling_task_when_route_fails(client, db_session, mo
             raise
 
     monkeypatch.setattr(risk_engine, "check_text_risk", _risk)
-    monkeypatch.setattr(ai_engine, "generate_empathy_text", _empathy)
+    monkeypatch.setattr(ai_engine, "stream_empathy_text", _stream)
     monkeypatch.setattr(ai_engine, "classify_emotion_route", _route)
     monkeypatch.setattr(ai_engine, "get_embedding", _embedding)
 
@@ -395,8 +391,8 @@ def test_chat_reply_generation_failure_keeps_session_retryable(client, db_sessio
     async def _risk(*args, **kwargs):
         return _safe_result()
 
-    async def _empathy(*args, **kwargs):
-        return "我在听你说。"
+    async def _stream(*args, **kwargs):
+        yield "我在听你说。"
 
     async def _route(*args, **kwargs):
         return {"Island": "RAIN", "Intensity": "LOW"}
@@ -414,7 +410,7 @@ def test_chat_reply_generation_failure_keeps_session_retryable(client, db_sessio
         return [_candidate("img-1", 0), _candidate("img-2", 1), _candidate("img-3", 2)]
 
     monkeypatch.setattr(risk_engine, "check_text_risk", _risk)
-    monkeypatch.setattr(ai_engine, "generate_empathy_text", _empathy)
+    monkeypatch.setattr(ai_engine, "stream_empathy_text", _stream)
     monkeypatch.setattr(ai_engine, "classify_emotion_route", _route)
     monkeypatch.setattr(ai_engine, "get_embedding", _embedding)
     monkeypatch.setattr(ai_engine, "generate_three_line_poem", _poem)
@@ -441,8 +437,8 @@ def test_chat_reply_returns_ai_connection_error_when_emotion_route_fails(client,
     async def _risk(*args, **kwargs):
         return _safe_result()
 
-    async def _empathy(*args, **kwargs):
-        return "我在听你说。"
+    async def _stream(*args, **kwargs):
+        yield "我在听你说。"
 
     async def _route(*args, **kwargs):
         raise ai_engine.AIEngineError("ai_connection_failed", "emotion_route", "emotion_route connection failed")
@@ -451,7 +447,7 @@ def test_chat_reply_returns_ai_connection_error_when_emotion_route_fails(client,
         return [0.1] * 1024
 
     monkeypatch.setattr(risk_engine, "check_text_risk", _risk)
-    monkeypatch.setattr(ai_engine, "generate_empathy_text", _empathy)
+    monkeypatch.setattr(ai_engine, "stream_empathy_text", _stream)
     monkeypatch.setattr(ai_engine, "classify_emotion_route", _route)
     monkeypatch.setattr(ai_engine, "get_embedding", _embedding)
 
@@ -510,8 +506,8 @@ def test_chat_reply_uses_default_tags_when_tag_generation_fails(client, db_sessi
     async def _risk(*args, **kwargs):
         return _safe_result()
 
-    async def _empathy(*args, **kwargs):
-        return "我在听你说。"
+    async def _stream(*args, **kwargs):
+        yield "我在听你说。"
 
     async def _route(*args, **kwargs):
         return {"Island": "RAIN", "Intensity": "LOW"}
@@ -529,7 +525,7 @@ def test_chat_reply_uses_default_tags_when_tag_generation_fails(client, db_sessi
         return [_candidate("img-1", 0), _candidate("img-2", 1), _candidate("img-3", 2)]
 
     monkeypatch.setattr(risk_engine, "check_text_risk", _risk)
-    monkeypatch.setattr(ai_engine, "generate_empathy_text", _empathy)
+    monkeypatch.setattr(ai_engine, "stream_empathy_text", _stream)
     monkeypatch.setattr(ai_engine, "classify_emotion_route", _route)
     monkeypatch.setattr(ai_engine, "get_embedding", _embedding)
     monkeypatch.setattr(ai_engine, "generate_suggested_tags", _tags)
@@ -598,8 +594,8 @@ def test_chat_reply_fails_when_non_primary_poem_generation_fails(client, db_sess
     async def _risk(*args, **kwargs):
         return _safe_result()
 
-    async def _empathy(*args, **kwargs):
-        return "我在听你说。"
+    async def _stream(*args, **kwargs):
+        yield "我在听你说。"
 
     async def _route(*args, **kwargs):
         return {"Island": "RAIN", "Intensity": "LOW"}
@@ -616,7 +612,7 @@ def test_chat_reply_fails_when_non_primary_poem_generation_fails(client, db_sess
         return [_candidate("img-1", 0), _candidate("img-2", 1), _candidate("img-3", 2)]
 
     monkeypatch.setattr(risk_engine, "check_text_risk", _risk)
-    monkeypatch.setattr(ai_engine, "generate_empathy_text", _empathy)
+    monkeypatch.setattr(ai_engine, "stream_empathy_text", _stream)
     monkeypatch.setattr(ai_engine, "classify_emotion_route", _route)
     monkeypatch.setattr(ai_engine, "get_embedding", _embedding)
     monkeypatch.setattr(ai_engine, "generate_three_line_poem", _poem)
