@@ -24,6 +24,5 @@ Dockerfile
 # 忽略说明文档
 README.md
 
-# 忽略脚本和数据 
+# 忽略脚本
 scripts/
-data/
