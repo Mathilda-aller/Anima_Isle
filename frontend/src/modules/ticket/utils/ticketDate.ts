@@ -1,5 +1,3 @@
-const CHINA_TIME_ZONE = "Asia/Shanghai";
-const CHINA_OFFSET = "+08:00";
 const DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_ZONE_PATTERN = /(?:Z|[+-]\d{2}:?\d{2})$/i;
 const CHINESE_DIGITS = ["零", "一", "二", "三", "四", "五", "六", "七", "八", "九"];
@@ -8,10 +6,10 @@ function normalizeDateInput(value: string): string {
   const trimmed = value.trim();
   if (!trimmed) return "";
   if (TIME_ZONE_PATTERN.test(trimmed)) return trimmed;
-  if (DATE_ONLY_PATTERN.test(trimmed)) return `${trimmed}T00:00:00${CHINA_OFFSET}`;
+  if (DATE_ONLY_PATTERN.test(trimmed)) return `${trimmed}T00:00:00`;
 
   const normalized = trimmed.includes("T") ? trimmed : trimmed.replace(" ", "T");
-  return `${normalized}${CHINA_OFFSET}`;
+  return `${normalized}Z`;
 }
 
 export function parseTicketDate(value?: string | null): Date | null {
@@ -22,12 +20,12 @@ export function parseTicketDate(value?: string | null): Date | null {
   return date;
 }
 
-function getChinaDateParts(value?: string | null) {
+function getLocalDateParts(value?: string | null, timeZone?: string) {
   const date = parseTicketDate(value);
   if (!date) return null;
 
   const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: CHINA_TIME_ZONE,
+    ...(timeZone ? { timeZone } : {}),
     year: "numeric",
     month: "numeric",
     day: "numeric",
@@ -54,8 +52,8 @@ function getSeason(month: number): string {
   return "冬";
 }
 
-export function formatTicketSeasonLabel(value?: string | null, fallback = ""): string {
-  const parts = getChinaDateParts(value);
+export function formatTicketSeasonLabel(value?: string | null, fallback = "", timeZone?: string): string {
+  const parts = getLocalDateParts(value, timeZone);
   if (!parts) return fallback;
 
   const yearText = String(parts.year)
@@ -66,31 +64,31 @@ export function formatTicketSeasonLabel(value?: string | null, fallback = ""): s
   return `${yearText}年·${getSeason(parts.month)}`;
 }
 
-export function formatTicketMonthDay(value?: string | null, fallback = "May 23"): string {
-  const parts = getChinaDateParts(value);
+export function formatTicketMonthDay(value?: string | null, fallback = "May 23", timeZone?: string): string {
+  const parts = getLocalDateParts(value, timeZone);
   if (!parts) return fallback;
 
   return new Intl.DateTimeFormat("en-US", {
-    timeZone: CHINA_TIME_ZONE,
+    ...(timeZone ? { timeZone } : {}),
     month: "short",
     day: "numeric",
   }).format(parts.date);
 }
 
-export function formatTicketWeekday(value?: string | null, fallback = "THURSDAY"): string {
-  const parts = getChinaDateParts(value);
+export function formatTicketWeekday(value?: string | null, fallback = "THURSDAY", timeZone?: string): string {
+  const parts = getLocalDateParts(value, timeZone);
   if (!parts) return fallback;
 
   return new Intl.DateTimeFormat("en-US", {
-    timeZone: CHINA_TIME_ZONE,
+    ...(timeZone ? { timeZone } : {}),
     weekday: "long",
   })
     .format(parts.date)
     .toUpperCase();
 }
 
-export function formatTicketMetaTime(value?: string | null, fallback = "言屿记录"): string {
-  const parts = getChinaDateParts(value);
+export function formatTicketMetaTime(value?: string | null, fallback = "言屿记录", timeZone?: string): string {
+  const parts = getLocalDateParts(value, timeZone);
   if (!parts) return fallback;
 
   return `${parts.hour}:${parts.minute} 言屿`;

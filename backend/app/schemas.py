@@ -1,7 +1,9 @@
 # app/schemas.py
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_serializer, field_validator
 from typing import Optional, List, Dict, Any
 from datetime import datetime
+
+from app.utils.time import serialize_utc_datetime
 
 # ================= 基础响应模型 =================
 class BaseResponse(BaseModel):
@@ -112,6 +114,10 @@ class ChatTicketDataDTO(BaseModel):
     recommended_tags: List[str] = Field(min_length=5, max_length=5)
     candidate_images: List[CandidateImageDTO] = Field(min_length=3, max_length=3)
 
+    @field_serializer("created_at")
+    def serialize_created_at(self, value: datetime) -> str:
+        return serialize_utc_datetime(value)
+
 # 3. 聊天过程中的响应
 class ChatStepResponse(BaseModel):
     session_id: str
@@ -143,6 +149,10 @@ class TicketDTO(BaseModel):
         if value is None:
             return []
         return value
+
+    @field_serializer("created_at")
+    def serialize_created_at(self, value: datetime) -> str:
+        return serialize_utc_datetime(value)
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -200,6 +210,10 @@ class MapStarDTO(BaseModel):
         if value is None:
             return []
         return value
+
+    @field_serializer("created_at")
+    def serialize_created_at(self, value: datetime) -> str:
+        return serialize_utc_datetime(value)
 
     # 增加这个配置允许从 ORM 读取
     model_config = ConfigDict(from_attributes=True)

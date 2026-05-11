@@ -3,6 +3,7 @@ from sqlalchemy import Column, Integer, BigInteger, String, Boolean, JSON, DateT
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.database import Base
+from app.utils.time import utc_now
 
 # ================= 1. 用户表 (User) =================
 class User(Base):
@@ -72,8 +73,8 @@ class Ticket(Base):
     view_count = Column(Integer, default=0)
     hug_count = Column(Integer, default=0)
     
-    created_at = Column(DateTime, default=datetime.now)
-    updated_at = Column(DateTime, default=datetime.now)
+    created_at = Column(DateTime, default=utc_now)
+    updated_at = Column(DateTime, default=utc_now)
     
     reroll_count = Column(Integer, default=0, nullable=False)
     

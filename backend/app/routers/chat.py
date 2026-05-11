@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 from app import crud, deps, models, schemas
 from app.constants.islands import DEFAULT_RECOMMENDED_TAGS
 from app.utils import ai_engine, risk_engine, search_engine
+from app.utils.time import utc_now
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -103,7 +104,7 @@ async def _never_disconnected() -> bool:
 
 
 def _today_start() -> datetime:
-    return datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    return utc_now().replace(hour=0, minute=0, second=0, microsecond=0)
 
 
 def _assert_daily_ticket_limit_not_reached(
