@@ -4,7 +4,7 @@ export const COMFORT_STAGE_SHORT_DELAY_MS = 2500;
 export const COMFORT_STAGE_MEDIUM_DELAY_MS = 3500;
 export const COMFORT_STAGE_LONG_DELAY_MS = 4500;
 export const TRANSITION_STAGE_MIN_DELAY_MS = 800;
-export const IMAGE_PRELOAD_TIMEOUT_MS = 6000;
+export const IMAGE_PRELOAD_TIMEOUT_MS = 20000;
 export const IMAGE_PRELOAD_ERROR_MESSAGE = "画面还没靠岸，请返回重试";
 
 export function getComfortStageDelayMs(text: string): number {

@@ -4,6 +4,7 @@ import {
   COMFORT_STAGE_LONG_DELAY_MS,
   COMFORT_STAGE_MEDIUM_DELAY_MS,
   COMFORT_STAGE_SHORT_DELAY_MS,
+  IMAGE_PRELOAD_TIMEOUT_MS,
   TRANSITION_STAGE_MIN_DELAY_MS,
   getComfortStageDelayMs,
   runRevealStageSequence,
@@ -30,6 +31,7 @@ describe("generatingFlow", () => {
     expect(COMFORT_STAGE_SHORT_DELAY_MS).toBe(2500);
     expect(COMFORT_STAGE_MEDIUM_DELAY_MS).toBe(3500);
     expect(COMFORT_STAGE_LONG_DELAY_MS).toBe(4500);
+    expect(IMAGE_PRELOAD_TIMEOUT_MS).toBe(20000);
   });
 
   it("maps comfort copy length to the expected minimum delay", () => {
