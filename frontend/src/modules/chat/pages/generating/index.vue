@@ -9,7 +9,6 @@ import ChatTicketRevealCard from "@/modules/chat/components/ChatTicketRevealCard
 import { useSquareStore } from "@/modules/square/store/square";
 import { createAsyncFlowGuard } from "@/modules/chat/utils/asyncFlowGuard";
 import {
-  IMAGE_PRELOAD_ERROR_MESSAGE,
   IMAGE_PRELOAD_TIMEOUT_MS,
   TRANSITION_STAGE_MIN_DELAY_MS,
   getComfortStageDelayMs,
@@ -197,9 +196,9 @@ function startRevealFlow(token: number) {
       errorMsg.value = "";
     },
     onImageFailed: () => {
-      stageState.value = "transition";
+      stageState.value = "reveal";
       prefetchedRevealImageUrl.value = "";
-      errorMsg.value = IMAGE_PRELOAD_ERROR_MESSAGE;
+      errorMsg.value = "";
     },
   });
 }
