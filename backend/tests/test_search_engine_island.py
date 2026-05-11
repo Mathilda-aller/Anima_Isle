@@ -26,6 +26,32 @@ def _hit(image_id: str, distance: float, fallback_level: int):
     }
 
 
+def test_search_island_candidates_builds_oss_url_from_legacy_image_id(monkeypatch):
+    fake_client = _FakeClient(
+        intensity_hits=[
+            {
+                "distance": 0.91,
+                "entity": {
+                    "Image_ID": "MIST_LOW_00001",
+                    "Island_Target": "MIST",
+                    "Emotion_Intensity": "LOW",
+                    "Semantic_text": "semantic",
+                    "poem_content": "poem",
+                    "Fallback_level": 1,
+                },
+            }
+        ],
+        island_hits=[],
+    )
+    monkeypatch.setattr(search_engine, "client", fake_client)
+    monkeypatch.setattr(search_engine, "client_init_attempted", True)
+    monkeypatch.setattr(search_engine, "IMAGE_BASE_URL", "https://oss.example.com")
+
+    result = search_engine.search_island_candidates([0.1] * 1024, "MIST", intensity="LOW", top_k=1)
+
+    assert result[0]["image_url"] == "https://oss.example.com/MIST_LOW/MIST_LOW_00001.png"
+
+
 def test_search_island_candidates_primary_enough(monkeypatch):
     fake_client = _FakeClient(
         intensity_hits=[

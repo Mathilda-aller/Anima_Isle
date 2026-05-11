@@ -111,12 +111,26 @@ def _coerce_image_url(entity: Dict[str, Any]) -> str:
         return image_id
 
     direct_url = entity.get("image_url")
-    if isinstance(direct_url, str) and direct_url:
+    if isinstance(direct_url, str) and direct_url.startswith("http"):
         return direct_url
+    if isinstance(direct_url, str) and direct_url:
+        return f"{IMAGE_BASE_URL}/{direct_url.lstrip('/')}"
 
-    # 新库当前约定 Image_ID 为图片名称；这里做保底映射，避免空 url
     if isinstance(image_id, str) and image_id:
-        return image_id
+        image_name = image_id.lstrip("/")
+        if not os.path.splitext(image_name)[1]:
+            image_name = f"{image_name}.png"
+
+        sheet_name = entity.get("Sheet_Name")
+        if not isinstance(sheet_name, str) or not sheet_name:
+            island = entity.get("Island_Target")
+            intensity = entity.get("Emotion_Intensity")
+            if isinstance(island, str) and isinstance(intensity, str) and island and intensity:
+                sheet_name = f"{island}_{intensity}"
+
+        if isinstance(sheet_name, str) and sheet_name:
+            return f"{IMAGE_BASE_URL}/{sheet_name}/{image_name}"
+        return f"{IMAGE_BASE_URL}/{image_name}"
 
     return _fallback_image_urls()[0]
 
@@ -158,6 +172,7 @@ def _search_by_filter(vector: List[float], query_filter: str, limit: int) -> Lis
             "Image_Description",
             "Semantic_text",
             "poem_content",
+            "Sheet_Name",
             "Fallback_level",
             "image_url",
         ],
